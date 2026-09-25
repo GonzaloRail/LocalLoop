@@ -141,13 +141,6 @@ export function LandingPage({ navigate, setUserType }: NavProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('demo-flow')}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-brand-primary bg-brand-tertiary hover:bg-surface-hover border border-border-primary transition-colors"
-            >
-              <Zap size={13} className="text-[#00B686]" />
-              Flujo Demo
-            </button>
             <ThemeToggle />
             <button
               onClick={() => navigate('login')}
@@ -207,13 +200,6 @@ export function LandingPage({ navigate, setUserType }: NavProps) {
               >
                 Soy promotor
               </Button>
-              <button
-                type="button"
-                onClick={() => navigate('demo-flow')}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors ml-1 font-medium"
-              >
-                Ver simulador interactivo <ChevronRight size={15} />
-              </button>
             </div>
 
             {/* Trust Badges Strip */}
@@ -568,9 +554,6 @@ export function LandingPage({ navigate, setUserType }: NavProps) {
             </span>
           </div>
           <div className="flex items-center gap-6 text-xs text-text-secondary">
-            <button onClick={() => navigate('demo-flow')} className="hover:text-text-primary transition-colors">
-              Flujo Demo
-            </button>
             <a href={LIVE_TESTNET_TX_URL} target="_blank" rel="noopener noreferrer" className="hover:text-text-primary transition-colors">
               Stellar Expert
             </a>

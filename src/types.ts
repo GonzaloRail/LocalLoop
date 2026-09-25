@@ -27,7 +27,6 @@ export type Page =
   | 'account-statement'
   | 'transaction-history'
   | 'promoter-profile'
-  | 'demo-flow'
 
 export type UserType = 'business' | 'promoter' | null
 

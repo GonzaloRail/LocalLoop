@@ -34,7 +34,6 @@ import {
   TransactionHistory,
   PromoterProfile,
 } from './pages/PromoterPages'
-import { DemoFlowPage } from './pages/DemoFlowPage'
 
 function AppContent() {
   const [page, setPage] = useState<Page>('landing')
@@ -78,7 +77,6 @@ function AppContent() {
     'account-statement': <AccountStatement {...navProps} />,
     'transaction-history': <TransactionHistory {...navProps} />,
     'promoter-profile': <PromoterProfile {...navProps} />,
-    'demo-flow': <DemoFlowPage {...navProps} />,
   }
 
   return pages[page] ?? pages.landing
