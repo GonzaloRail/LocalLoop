@@ -27,6 +27,7 @@ export type Page =
   | 'account-statement'
   | 'transaction-history'
   | 'promoter-profile'
+  | 'demo-flow'
 
 export type UserType = 'business' | 'promoter' | null
 
@@ -35,4 +36,75 @@ export interface NavProps {
   params: Record<string, unknown>
   userType: UserType
   setUserType: (t: UserType) => void
+}
+
+export type CampaignStatus = 'active' | 'closing' | 'liquidated'
+
+export interface Campaign {
+  id: string
+  name: string
+  business: string
+  businessWallet?: string
+  category: string
+  description: string
+  startDate: string
+  endDate: string
+  budget: number
+  reward: number
+  maxConversions: number
+  conversions: number
+  usedBudget: number
+  daysLeft: number
+  status: CampaignStatus
+  conversionAction: string
+  validationMethod: string
+  conditions: string
+  fundingTxHash?: string
+  liquidationTxHash?: string
+}
+
+export type ConversionStatus = 'pending' | 'confirmed' | 'rejected' | 'paid'
+
+export interface Conversion {
+  id: string
+  campaignId: string
+  code: string
+  promoter: string
+  promoterWallet?: string
+  operation: string
+  date: string
+  reward: number
+  status: ConversionStatus
+}
+
+export interface PromoterParticipation {
+  id: string
+  campaignId: string
+  promoterName: string
+  promoterWallet: string
+  code: string
+  joinedDate: string
+}
+
+export interface StellarTransactionRecord {
+  id: string
+  campaign: string
+  campaignId?: string
+  code?: string
+  amount: number
+  date: string
+  txId: string | null
+  status: 'paid' | 'pending' | 'failed'
+  type: 'funding' | 'liquidation'
+  explorerUrl?: string
+}
+
+export interface CurrentUser {
+  type: UserType
+  name: string
+  email: string
+  wallet: string | null
+  phone?: string
+  category?: string
+  description?: string
 }

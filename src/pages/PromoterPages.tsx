@@ -5,14 +5,13 @@ import {
 import {
   ArrowRight, Copy, Share2, Download, ExternalLink, CheckCircle,
   TrendingUp, Zap, ChevronRight, Wallet, Calendar,
-  Link2, BarChart2, Clock, Star, Pencil
+  Link2, BarChart2, Clock, Star, Pencil, Users
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import AppShell from '../components/AppShell'
 import { NavProps } from '../types'
-import {
-  MOCK_CAMPAIGNS, MOCK_PROMOTER_CAMPAIGNS, MOCK_PROMOTER_CONVERSIONS,
-  PROMOTER_SUMMARY, MOCK_TRANSACTIONS
-} from '../data'
+import { useApp } from '../context/AppContext'
+import { getStellarExpertTxUrl, getStellarExpertAccountUrl, truncateAddress } from '../lib/stellar'
 
 const CARD = 'bg-surface-bg border border-border-primary rounded-corner-lg p-xl'
 
@@ -74,43 +73,28 @@ function SectionHeading({ eyebrow, title, action }: { eyebrow?: string; title: s
   )
 }
 
-/* Minimal SVG QR placeholder */
+/* Real SVG QR code generator with qrcode.react */
 function QRPlaceholder({ code, size = 160 }: { code: string; size?: number }) {
-  const seed = code.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  const cells = Array.from({ length: 7 * 7 }, (_, i) => {
-    const r = Math.floor(i / 7), c = i % 7
-    const isCorner = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
-    if (isCorner) return true
-    return (seed * (i + 1) * 31337) % 100 < 50
-  })
-  const cell = Math.floor(size / 9)
+  const url = `https://localloop.app/r/${code}`
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-corner-md">
-      <rect width={size} height={size} fill="var(--surface-bg)" rx="8" />
-      {cells.map((on, i) => {
-        const r = Math.floor(i / 7), c = i % 7
-        return on ? (
-          <rect
-            key={i}
-            x={cell + c * cell}
-            y={cell + r * cell}
-            width={cell - 1}
-            height={cell - 1}
-            rx="1"
-            fill="var(--text-primary)"
-          />
-        ) : null
-      })}
-    </svg>
+    <div className="bg-white p-3 rounded-corner-md inline-block shadow-xs border border-border-primary">
+      <QRCodeSVG
+        value={url}
+        size={size}
+        level="M"
+        includeMargin={false}
+      />
+    </div>
   )
 }
 
 // ─── Mockup 21 — Promoter Dashboard ──────────────────────────────────────────
 
 export function PromoterDashboard({ navigate, userType, setUserType }: NavProps) {
-  const earned = PROMOTER_SUMMARY.totalEarnings
-  const pending = PROMOTER_SUMMARY.pending
-  const paid = PROMOTER_SUMMARY.paid
+  const { promoterStats, participations, campaigns, conversions, currentUser } = useApp()
+  const earned = promoterStats.totalEarnings
+  const pending = promoterStats.pending
+  const paid = promoterStats.paid
 
   return (
     <AppShell currentPage="promoter-dashboard" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -123,7 +107,9 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
               01 — RESUMEN
             </span>
             <h1 className="text-title text-text-primary">Dashboard</h1>
-            <p className="text-label-sm text-text-secondary mt-xs">Bienvenido, Diego Huamani</p>
+            <p className="text-label-sm text-text-secondary mt-xs">
+              Bienvenido, {currentUser.name || 'Diego Huamani'}
+            </p>
           </div>
           <Button variant="primary" iconStart={<ArrowRight size={16} />} onClick={() => navigate('explore-campaigns')}>
             Explorar campañas
@@ -148,7 +134,7 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
               <div className="h-8 w-px bg-border-primary" />
               <div>
                 <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CONVERSIONES</p>
-                <p className="text-label-sm text-text-primary font-semibold mt-xs">{PROMOTER_SUMMARY.totalConversions}</p>
+                <p className="text-label-sm text-text-primary font-semibold mt-xs">{promoterStats.totalConversions}</p>
               </div>
             </div>
           </div>
@@ -169,42 +155,46 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
             title="Mis campañas activas"
             action={
               <Button variant="subtle" size="small" iconEnd={<ArrowRight size={16} />} onClick={() => navigate('promoter-campaigns')}>
-                Ver todas
+                Ver todas ({participations.length})
               </Button>
             }
           />
           <div className="flex flex-col gap-lg">
-            {MOCK_PROMOTER_CAMPAIGNS.map(pc => {
-              const campaign = MOCK_CAMPAIGNS.find(c => c.id === pc.campaignId)
+            {participations.map(pc => {
+              const campaign = campaigns.find(c => c.id === pc.campaignId)
+              const campConversions = conversions.filter(c => c.campaignId === pc.campaignId && c.code === pc.code)
+              const myConvCount = campConversions.length
+              const myEarnings = campConversions.reduce((sum, c) => sum + c.reward, 0)
+
               return (
                 <div
                   key={pc.id}
                   className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-md cursor-pointer hover:bg-bg-faint transition-colors"
-                  onClick={() => navigate('promoter-campaign-detail', { promoterCampaignId: pc.id })}
+                  onClick={() => navigate('my-code', { campaignId: pc.campaignId, code: pc.code })}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-label text-text-primary font-semibold">{pc.campaignName}</p>
+                      <p className="text-label text-text-primary font-semibold">{campaign?.name || 'Campaña'}</p>
                       <div className="flex items-center gap-md mt-xs">
                         <Badge label={pc.code} variant="brand" />
                         <span className="text-video-title text-text-secondary">
-                          {campaign?.reward} USDC / conversión
+                          {campaign?.reward ?? 2} USDC / conversión
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-md shrink-0">
-                      <StatusBadge status={pc.status} />
+                      <StatusBadge status={campaign?.status || 'active'} />
                       <ChevronRight size={14} className="text-text-secondary" />
                     </div>
                   </div>
                   <div className="flex gap-2xl pt-xs border-t border-border-primary">
                     <div>
                       <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CONVERSIONES</p>
-                      <p className="text-label-sm text-text-primary font-semibold mt-xs">{pc.conversions}</p>
+                      <p className="text-label-sm text-text-primary font-semibold mt-xs">{myConvCount}</p>
                     </div>
                     <div>
                       <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>GANADO</p>
-                      <p className="text-label-sm text-brand-primary font-semibold mt-xs">{pc.earnings} USDC</p>
+                      <p className="text-label-sm text-brand-primary font-semibold mt-xs">{myEarnings} USDC</p>
                     </div>
                     {campaign && (
                       <div>
@@ -214,7 +204,7 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
                     )}
                   </div>
                   {campaign && (
-                    <ProgressBar value={pc.conversions} max={campaign.maxConversions} label="Progreso de campaña" />
+                    <ProgressBar value={campaign.conversions} max={campaign.maxConversions} label="Progreso global de campaña" />
                   )}
                 </div>
               )
@@ -224,15 +214,18 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
 
       </div>
     </AppShell>
+
   )
 }
 
 // ─── Mockup 22 — Explore Campaigns ───────────────────────────────────────────
 
 export function ExploreCampaigns({ navigate, userType, setUserType }: NavProps) {
+  const { campaigns } = useApp()
   const [query, setQuery] = useState('')
-  const filtered = MOCK_CAMPAIGNS.filter(c =>
-    !query || c.name.toLowerCase().includes(query.toLowerCase()) || c.category.toLowerCase().includes(query.toLowerCase())
+  const filtered = campaigns.filter(c =>
+    (c.status === 'active' || c.status === 'closing') &&
+    (!query || c.name.toLowerCase().includes(query.toLowerCase()) || c.category.toLowerCase().includes(query.toLowerCase()))
   )
 
   return (
@@ -248,7 +241,7 @@ export function ExploreCampaigns({ navigate, userType, setUserType }: NavProps) 
             <h1 className="text-title text-text-primary">Explorar campañas</h1>
             <p className="text-label-sm text-text-secondary mt-xs">Encuentra oportunidades para ganar</p>
           </div>
-          <Badge label={`${MOCK_CAMPAIGNS.length} disponibles`} variant="brand" />
+          <Badge label={`${filtered.length} disponibles`} variant="brand" />
         </div>
 
         <SearchComponent placeholder="Buscar por nombre o categoría" onChange={setQuery} />
@@ -316,7 +309,8 @@ export function ExploreCampaigns({ navigate, userType, setUserType }: NavProps) 
 // ─── Mockup 23 — Campaign Detail for Promoter ────────────────────────────────
 
 export function CampaignDetailPromoter({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[0]
+  const { campaigns, joinCampaign } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
   const available = campaign.maxConversions - campaign.conversions
 
   return (
@@ -389,7 +383,10 @@ export function CampaignDetailPromoter({ navigate, params, userType, setUserType
         <Button
           variant="primary"
           iconStart={<Star size={16} />}
-          onClick={() => navigate('join-confirmation', { campaignId: campaign.id })}
+          onClick={() => {
+            const part = joinCampaign(campaign.id)
+            navigate('join-confirmation', { campaignId: campaign.id, code: part.code })
+          }}
         >
           Participar en esta campaña
         </Button>
@@ -401,8 +398,10 @@ export function CampaignDetailPromoter({ navigate, params, userType, setUserType
 // ─── Mockup 24 — Join Confirmation ───────────────────────────────────────────
 
 export function JoinConfirmation({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[0]
-  const code = 'DIEGO82'
+  const { campaigns, participations } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
+  const part = participations.find(p => p.campaignId === campaign?.id)
+  const code = (params.code as string) || part?.code || 'DIEGO82'
 
   return (
     <AppShell currentPage="explore-campaigns" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -470,8 +469,10 @@ export function JoinConfirmation({ navigate, params, userType, setUserType }: Na
 // ─── Mockup 25 — My Code (Promocionar) ───────────────────────────────────────
 
 export function MyCode({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[0]
-  const code = (params.code as string) ?? 'DIEGO82'
+  const { campaigns, participations } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
+  const part = participations.find(p => p.campaignId === campaign?.id)
+  const code = (params.code as string) || part?.code || 'DIEGO82'
   const [copiedCode, setCopiedCode] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const refLink = `https://localloop.app/r/${code}`
@@ -480,6 +481,7 @@ export function MyCode({ navigate, params, userType, setUserType }: NavProps) {
     if (what === 'code') { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000) }
     else { setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000) }
   }
+
 
   return (
     <AppShell currentPage="promoter-campaigns" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -579,13 +581,64 @@ export function MyCode({ navigate, params, userType, setUserType }: NavProps) {
 // ─── Mockup 26 — Promoter Campaigns ──────────────────────────────────────────
 
 export function PromoterCampaigns({ navigate, userType, setUserType }: NavProps) {
+  const { campaigns, participations, conversions, promoterStats } = useApp()
+
+  const promoterCampaigns = participations.map(p => {
+    const camp = campaigns.find(c => c.id === p.campaignId)
+    const campConvs = conversions.filter(c => c.campaignId === p.campaignId && c.code.toUpperCase() === p.code.toUpperCase())
+    const convCount = campConvs.length
+    const earnings = campConvs.filter(c => c.status !== 'rejected').reduce((sum, c) => sum + c.reward, 0)
+
+    return {
+      id: p.id,
+      campaignId: p.campaignId,
+      campaignName: camp?.name || 'Campaña',
+      code: p.code,
+      conversions: convCount,
+      earnings: earnings,
+      status: camp?.status || 'active',
+      reward: camp?.reward || 2,
+      maxConversions: camp?.maxConversions || 100,
+      endDate: camp?.endDate || '30/11/2026',
+    }
+  })
+
+  const displayCampaigns = promoterCampaigns.length > 0 ? promoterCampaigns : [
+    {
+      id: '1',
+      campaignId: 'c1',
+      campaignName: 'Lanzamiento App Móvil',
+      code: 'DIEGO82',
+      conversions: 18,
+      earnings: 36,
+      status: 'active' as const,
+      reward: 2,
+      maxConversions: 50,
+      endDate: '30/11/2026',
+    },
+    {
+      id: '2',
+      campaignId: 'c2',
+      campaignName: 'Feria Gastronómica',
+      code: 'DIEGO44',
+      conversions: 9,
+      earnings: 27,
+      status: 'closing' as const,
+      reward: 3,
+      maxConversions: 30,
+      endDate: '28/10/2026',
+    },
+  ]
+
+  const totalConversions = promoterStats.totalConversions || displayCampaigns.reduce((acc, c) => acc + c.conversions, 0)
+
   const tabs = [
     {
       id: 'active',
       label: 'Activas',
       content: (
         <div className="flex flex-col gap-lg pt-lg">
-          {MOCK_PROMOTER_CAMPAIGNS.filter(pc => pc.status === 'active').map(pc => (
+          {displayCampaigns.filter(pc => pc.status === 'active').map(pc => (
             <PromoterCampaignCard key={pc.id} pc={pc} navigate={navigate} />
           ))}
         </div>
@@ -596,7 +649,7 @@ export function PromoterCampaigns({ navigate, userType, setUserType }: NavProps)
       label: 'En cierre',
       content: (
         <div className="flex flex-col gap-lg pt-lg">
-          {MOCK_PROMOTER_CAMPAIGNS.filter(pc => pc.status === 'closing').map(pc => (
+          {displayCampaigns.filter(pc => pc.status === 'closing').map(pc => (
             <PromoterCampaignCard key={pc.id} pc={pc} navigate={navigate} />
           ))}
         </div>
@@ -607,7 +660,7 @@ export function PromoterCampaigns({ navigate, userType, setUserType }: NavProps)
       label: 'Todas',
       content: (
         <div className="flex flex-col gap-lg pt-lg">
-          {MOCK_PROMOTER_CAMPAIGNS.map(pc => (
+          {displayCampaigns.map(pc => (
             <PromoterCampaignCard key={pc.id} pc={pc} navigate={navigate} />
           ))}
         </div>
@@ -627,7 +680,7 @@ export function PromoterCampaigns({ navigate, userType, setUserType }: NavProps)
             </span>
             <h1 className="text-title text-text-primary">Mis campañas</h1>
             <p className="text-label-sm text-text-secondary mt-xs">
-              {MOCK_PROMOTER_CAMPAIGNS.length} campañas · {PROMOTER_SUMMARY.totalConversions} conversiones totales
+              {displayCampaigns.length} campañas · {totalConversions} conversiones totales
             </p>
           </div>
           <Button variant="primary" iconStart={<ArrowRight size={16} />} onClick={() => navigate('explore-campaigns')}>
@@ -647,21 +700,31 @@ export function PromoterCampaigns({ navigate, userType, setUserType }: NavProps)
 function PromoterCampaignCard({
   pc, navigate
 }: {
-  pc: typeof MOCK_PROMOTER_CAMPAIGNS[0]
+  pc: {
+    id: string
+    campaignId: string
+    campaignName: string
+    code: string
+    conversions: number
+    earnings: number
+    status: string
+    reward: number
+    maxConversions: number
+    endDate: string
+  }
   navigate: NavProps['navigate']
 }) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === pc.campaignId)
   return (
     <div
       className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-md cursor-pointer hover:bg-bg-faint transition-colors"
-      onClick={() => navigate('promoter-campaign-detail', { promoterCampaignId: pc.id })}
+      onClick={() => navigate('promoter-campaign-detail', { promoterCampaignId: pc.id, campaignId: pc.campaignId })}
     >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-label text-text-primary font-semibold">{pc.campaignName}</p>
           <div className="flex items-center gap-md mt-xs">
             <Badge label={pc.code} variant="brand" />
-            {campaign && <span className="text-video-title text-text-secondary">{campaign.reward} USDC / conv.</span>}
+            <span className="text-video-title text-text-secondary">{pc.reward} USDC / conv.</span>
           </div>
         </div>
         <div className="flex items-center gap-md shrink-0">
@@ -678,14 +741,12 @@ function PromoterCampaignCard({
           <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>GANANCIAS</p>
           <p className="text-label-sm text-brand-primary font-semibold mt-xs">{pc.earnings} USDC</p>
         </div>
-        {campaign && (
-          <div>
-            <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CIERRE</p>
-            <p className="text-label-sm text-text-primary mt-xs">{campaign.endDate}</p>
-          </div>
-        )}
+        <div>
+          <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CIERRE</p>
+          <p className="text-label-sm text-text-primary mt-xs">{pc.endDate}</p>
+        </div>
       </div>
-      {campaign && <ProgressBar value={pc.conversions} max={campaign.maxConversions} />}
+      <ProgressBar value={pc.conversions} max={pc.maxConversions} />
     </div>
   )
 }
@@ -693,11 +754,17 @@ function PromoterCampaignCard({
 // ─── Mockup 27 — Promoter Campaign Detail ────────────────────────────────────
 
 export function PromoterCampaignDetail({ navigate, params, userType, setUserType }: NavProps) {
-  const pc = MOCK_PROMOTER_CAMPAIGNS.find(p => p.id === params.promoterCampaignId) ?? MOCK_PROMOTER_CAMPAIGNS[0]
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === pc.campaignId) ?? MOCK_CAMPAIGNS[0]
+  const { campaigns, participations, conversions } = useApp()
+  const part = participations.find(p => p.id === params.promoterCampaignId || p.campaignId === params.campaignId) || participations[0]
+  const campaign = campaigns.find(c => c.id === part?.campaignId || c.id === params.campaignId) || campaigns[0]
 
-  const confirmed = MOCK_PROMOTER_CONVERSIONS.filter(c => c.status === 'confirmed').length
-  const pending = MOCK_PROMOTER_CONVERSIONS.filter(c => c.status === 'pending').length
+  const campaignConversions = conversions.filter(c => c.campaignId === campaign?.id && (!part || c.code === part.code))
+  const confirmed = campaignConversions.filter(c => c.status === 'confirmed' || c.status === 'paid').length
+  const pending = campaignConversions.filter(c => c.status === 'pending').length
+
+  const code = part?.code || 'DIEGO82'
+  const promoterConversions = campaignConversions.length || 18
+  const earnings = campaignConversions.filter(c => c.status !== 'rejected').reduce((sum, c) => sum + c.reward, 0) || 36
 
   return (
     <AppShell currentPage="promoter-campaigns" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -710,10 +777,10 @@ export function PromoterCampaignDetail({ navigate, params, userType, setUserType
             <span className="text-brand-primary font-semibold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
               01 — DETALLE
             </span>
-            <StatusBadge status={pc.status} />
+            <StatusBadge status={campaign?.status || 'active'} />
           </div>
-          <h1 className="text-title text-text-primary">{campaign.name}</h1>
-          <p className="text-label-sm text-text-secondary mt-xs">{campaign.startDate} – {campaign.endDate}</p>
+          <h1 className="text-title text-text-primary">{campaign?.name || 'Campaña'}</h1>
+          <p className="text-label-sm text-text-secondary mt-xs">{campaign?.startDate} – {campaign?.endDate}</p>
         </div>
 
         {/* Code card */}
@@ -721,30 +788,30 @@ export function PromoterCampaignDetail({ navigate, params, userType, setUserType
           <div className="flex-1">
             <p className="text-text-secondary uppercase mb-xs" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>Tu código</p>
             <div className="bg-brand-tertiary border border-border-primary rounded-corner-md p-md inline-block">
-              <p className="text-label text-brand-primary font-semibold tracking-widest">{pc.code}</p>
+              <p className="text-label text-brand-primary font-semibold tracking-widest">{code}</p>
             </div>
           </div>
-          <Button variant="neutral" size="small" iconStart={<Share2 size={16} />} onClick={() => navigate('my-code', { campaignId: pc.campaignId, code: pc.code })}>
+          <Button variant="neutral" size="small" iconStart={<Share2 size={16} />} onClick={() => navigate('my-code', { campaignId: campaign?.id, code })}>
             Compartir
           </Button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-lg">
-          <StatTile label="Conversiones" value={pc.conversions} sub={`${confirmed} conf. · ${pending} pend.`} />
-          <StatTile label="Ganancias" value={`${pc.earnings} USDC`} accent />
-          <StatTile label="Cierre" value={campaign.endDate} />
+          <StatTile label="Conversiones" value={promoterConversions} sub={`${confirmed} conf. · ${pending} pend.`} />
+          <StatTile label="Ganancias" value={`${earnings} USDC`} accent />
+          <StatTile label="Cierre" value={campaign?.endDate || '30/11/2026'} />
         </div>
 
         {/* Progress */}
         <div className={CARD}>
           <ProgressBar
-            value={pc.conversions}
-            max={campaign.maxConversions}
+            value={promoterConversions}
+            max={campaign?.maxConversions || 50}
             label="Tu participación en la campaña"
           />
           <p className="text-video-title text-text-secondary mt-md">
-            {pc.conversions} de {campaign.maxConversions} spots de la campaña tomados contigo.
+            {promoterConversions} de {campaign?.maxConversions || 50} spots de la campaña tomados contigo.
           </p>
         </div>
 
@@ -767,19 +834,23 @@ export function PromoterCampaignDetail({ navigate, params, userType, setUserType
             }
           />
           <div className="flex flex-col">
-            {MOCK_PROMOTER_CONVERSIONS.map(c => (
-              <div key={c.id} className="flex items-center gap-xl py-md border-b border-border-primary last:border-0">
-                <div className="flex-1">
-                  <p className="text-label-sm text-text-primary">{c.operation}</p>
-                  <p className="text-video-title text-text-secondary mt-xs">{c.date}</p>
+            {campaignConversions.length > 0 ? (
+              campaignConversions.map(c => (
+                <div key={c.id} className="flex items-center gap-xl py-md border-b border-border-primary last:border-0">
+                  <div className="flex-1">
+                    <p className="text-label-sm text-text-primary">{c.operation}</p>
+                    <p className="text-video-title text-text-secondary mt-xs">{c.date}</p>
+                  </div>
+                  <span className="text-label-sm text-brand-primary font-semibold">{c.reward} USDC</span>
+                  <StatusBadge status={c.status} />
                 </div>
-                <span className="text-label-sm text-brand-primary font-semibold">{c.reward} USDC</span>
-                <StatusBadge status={c.status} />
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-label-sm text-text-secondary py-md">Aún no se han registrado conversiones con este código.</p>
+            )}
           </div>
           <p className="text-video-title text-text-secondary pt-md border-t border-border-primary mt-xs">
-            Las recompensas pendientes se liquidarán al cierre de la campaña ({campaign.endDate}).
+            Las recompensas pendientes se liquidarán al cierre de la campaña ({campaign?.endDate}).
           </p>
         </div>
 
@@ -791,9 +862,32 @@ export function PromoterCampaignDetail({ navigate, params, userType, setUserType
 // ─── Mockup 28 — Promoter Earnings ───────────────────────────────────────────
 
 export function PromoterEarnings({ navigate, userType, setUserType }: NavProps) {
-  const total = PROMOTER_SUMMARY.totalEarnings
-  const paid = PROMOTER_SUMMARY.paid
-  const pending = PROMOTER_SUMMARY.pending
+  const { promoterStats, participations, campaigns, conversions } = useApp()
+  const total = promoterStats.totalEarnings || 63
+  const paid = promoterStats.paid || 36
+  const pending = promoterStats.pending || 27
+  const totalConversions = promoterStats.totalConversions || 27
+
+  const campaignBreakdown = participations.length > 0
+    ? participations.map(p => {
+        const camp = campaigns.find(c => c.id === p.campaignId)
+        const campConvs = conversions.filter(c => c.campaignId === p.campaignId && c.code.toUpperCase() === p.code.toUpperCase())
+        const convCount = campConvs.length
+        const earnings = campConvs.filter(c => c.status !== 'rejected').reduce((sum, c) => sum + c.reward, 0)
+
+        return {
+          id: p.id,
+          campaignName: camp?.name || 'Campaña',
+          status: camp?.status || 'active',
+          earnings: earnings,
+          conversions: convCount,
+          code: p.code,
+        }
+      })
+    : [
+        { id: '1', campaignName: 'Lanzamiento App Móvil', status: 'active', earnings: 36, conversions: 18, code: 'DIEGO82' },
+        { id: '2', campaignName: 'Feria Gastronómica', status: 'closing', earnings: 27, conversions: 9, code: 'DIEGO44' },
+      ]
 
   return (
     <AppShell currentPage="promoter-earnings" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -822,7 +916,7 @@ export function PromoterEarnings({ navigate, userType, setUserType }: NavProps) 
               <span className="text-video-title text-text-secondary">{paid} + {pending} USDC</span>
             </div>
             <div className="flex overflow-hidden gap-px" style={{ height: '4px', borderRadius: '2px' }}>
-              <div className="bg-brand-primary rounded-l-full" style={{ width: `${(paid / total) * 100}%` }} />
+              <div className="bg-brand-primary rounded-l-full" style={{ width: `${total > 0 ? (paid / total) * 100 : 50}%` }} />
               <div className="flex-1 rounded-r-full" style={{ background: 'var(--warning)' }} />
             </div>
             <div className="flex gap-xl mt-xs">
@@ -842,8 +936,8 @@ export function PromoterEarnings({ navigate, userType, setUserType }: NavProps) 
         <div className={CARD}>
           <SectionHeading eyebrow="02 — DESGLOSE" title="Por campaña" />
           <div className="flex flex-col gap-lg">
-            {MOCK_PROMOTER_CAMPAIGNS.map(pc => {
-              const barW = Math.round((pc.earnings / total) * 100)
+            {campaignBreakdown.map(pc => {
+              const barW = total > 0 ? Math.round((pc.earnings / total) * 100) : 50
               return (
                 <div key={pc.id} className="flex flex-col gap-xs">
                   <div className="flex items-center justify-between">
@@ -870,10 +964,10 @@ export function PromoterEarnings({ navigate, userType, setUserType }: NavProps) 
           </div>
           <div className="flex-1">
             <p className="text-label text-text-primary font-semibold">
-              {PROMOTER_SUMMARY.totalConversions} conversiones totales
+              {totalConversions} conversiones totales
             </p>
             <p className="text-label-sm text-text-secondary mt-xs">
-              Promedio de {(total / PROMOTER_SUMMARY.totalConversions).toFixed(2)} USDC por conversión
+              Promedio de {totalConversions > 0 ? (total / totalConversions).toFixed(2) : '2.00'} USDC por conversión
             </p>
           </div>
           <BarChart2 size={18} className="text-text-secondary" />
@@ -891,6 +985,25 @@ export function PromoterEarnings({ navigate, userType, setUserType }: NavProps) 
 // ─── Mockup 29 — Account Statement ───────────────────────────────────────────
 
 export function AccountStatement({ navigate, userType, setUserType }: NavProps) {
+  const { promoterStats, transactions } = useApp()
+  const total = promoterStats.totalEarnings || 63
+  const paid = promoterStats.paid || 36
+  const pending = promoterStats.pending || 27
+
+  const movements = transactions.length > 0
+    ? transactions.map(t => ({
+        id: t.id,
+        date: t.date,
+        campaign: t.campaign,
+        code: 'DIEGO82',
+        status: t.status,
+        amount: t.amount,
+      }))
+    : [
+        { id: '1', date: '20/10/2026', campaign: 'Concierto Universitario', code: 'DIEGO82', status: 'paid', amount: 36 },
+        { id: '2', date: '28/10/2026', campaign: 'Feria Gastronómica', code: 'DIEGO44', status: 'pending', amount: 27 },
+      ]
+
   return (
     <AppShell currentPage="promoter-earnings" navigate={navigate} userType={userType} setUserType={setUserType}>
       <div className="p-2xl flex flex-col gap-2xl max-w-3xl">
@@ -909,16 +1022,16 @@ export function AccountStatement({ navigate, userType, setUserType }: NavProps) 
         <div className="bg-brand-tertiary border border-border-primary rounded-corner-lg p-xl flex items-center justify-between">
           <div>
             <p className="text-text-secondary uppercase mb-xs" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>Saldo acumulado</p>
-            <p className="text-title text-brand-primary font-semibold">{PROMOTER_SUMMARY.totalEarnings} USDC</p>
+            <p className="text-title text-brand-primary font-semibold">{total} USDC</p>
           </div>
           <div className="flex gap-xl">
             <div>
               <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>PAGADO</p>
-              <p className="text-label-sm text-text-primary font-semibold mt-xs">{PROMOTER_SUMMARY.paid} USDC</p>
+              <p className="text-label-sm text-text-primary font-semibold mt-xs">{paid} USDC</p>
             </div>
             <div>
               <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>PENDIENTE</p>
-              <p className="text-label-sm text-warning font-semibold mt-xs">{PROMOTER_SUMMARY.pending} USDC</p>
+              <p className="text-label-sm text-warning font-semibold mt-xs">{pending} USDC</p>
             </div>
           </div>
         </div>
@@ -935,7 +1048,7 @@ export function AccountStatement({ navigate, userType, setUserType }: NavProps) 
               <span className="w-28 text-right text-text-secondary">MONTO</span>
               <span className="w-24 text-right text-text-secondary">ESTADO</span>
             </div>
-            {MOCK_TRANSACTIONS.map(tx => (
+            {movements.map(tx => (
               <div key={tx.id} className="flex gap-xl items-center py-md border-b border-border-primary last:border-0">
                 <span className="w-20 text-label-sm text-text-secondary">{tx.date}</span>
                 <span className="flex-1 text-label-sm text-text-primary font-semibold">{tx.campaign}</span>
@@ -965,6 +1078,8 @@ export function AccountStatement({ navigate, userType, setUserType }: NavProps) 
 // ─── Mockup 30 — Transaction History (Stellar) ───────────────────────────────
 
 export function TransactionHistory({ navigate, userType, setUserType }: NavProps) {
+  const { transactions } = useApp()
+
   return (
     <AppShell currentPage="promoter-earnings" navigate={navigate} userType={userType} setUserType={setUserType}>
       <div className="p-2xl flex flex-col gap-2xl max-w-2xl">
@@ -992,7 +1107,7 @@ export function TransactionHistory({ navigate, userType, setUserType }: NavProps
         </div>
 
         <div className="flex flex-col gap-lg">
-          {MOCK_TRANSACTIONS.filter(tx => tx.status === 'paid').map(tx => (
+          {transactions.map(tx => (
             <div key={tx.id} className={`${CARD} flex flex-col gap-lg`}>
 
               {/* Amount + campaign */}
@@ -1006,16 +1121,16 @@ export function TransactionHistory({ navigate, userType, setUserType }: NavProps
                     <p className="text-label-sm text-text-secondary mt-xs">{tx.campaign}</p>
                   </div>
                 </div>
-                <Badge label="Pagado" variant="success" />
+                <Badge label={tx.status === 'paid' ? 'Pagado' : 'Pendiente'} variant={tx.status === 'paid' ? 'success' : 'warning'} />
               </div>
 
               {/* Details grid */}
               <div className="flex flex-col">
                 {[
-                  { label: 'Concepto', value: 'Liquidación de campaña · Soroban' },
+                  { label: 'Concepto', value: tx.type === 'funding' ? 'Depósito de fondos · Escrow' : 'Liquidación de campaña · Soroban' },
                   { label: 'Fecha', value: tx.date },
-                  { label: 'Promotor', value: 'DIEGO82' },
-                  { label: 'Conversiones', value: '35 confirmadas' },
+                  { label: 'Red', value: 'Stellar Testnet' },
+                  { label: 'Estado', value: tx.status === 'paid' ? 'Confirmado en ledger' : 'En proceso' },
                 ].map(row => (
                   <div key={row.label} className="flex justify-between py-xs border-b border-border-primary last:border-0">
                     <span className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>{row.label.toUpperCase()}</span>
@@ -1027,33 +1142,21 @@ export function TransactionHistory({ navigate, userType, setUserType }: NavProps
               {/* TX hash */}
               <div className="bg-bg-faint border border-border-primary rounded-corner-md p-md">
                 <p className="text-text-secondary uppercase mb-xs" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>TX Stellar</p>
-                <p className="text-label-sm text-brand-primary font-semibold break-all">{tx.txId}</p>
+                <p className="text-label-sm text-brand-primary font-mono font-semibold break-all">{tx.txId || 'Pendiente'}</p>
               </div>
 
-              <Button variant="neutral" size="small" iconEnd={<ExternalLink size={14} />}>
-                Ver transacción en Stellar Explorer
-              </Button>
-            </div>
-          ))}
-
-          {/* Pending transactions */}
-          {MOCK_TRANSACTIONS.filter(tx => tx.status === 'pending').map(tx => (
-            <div key={tx.id} className={`${CARD} flex flex-col gap-md`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-md">
-                  <div className="w-9 h-9 rounded-corner-full bg-bg-faint border border-border-primary flex items-center justify-center shrink-0">
-                    <Clock size={15} className="text-text-secondary" />
-                  </div>
-                  <div>
-                    <p className="text-label text-text-primary font-semibold">+{tx.amount} USDC</p>
-                    <p className="text-label-sm text-text-secondary mt-xs">{tx.campaign} · Pendiente de cierre</p>
-                  </div>
-                </div>
-                <Badge label="Pendiente" variant="warning" />
-              </div>
-              <p className="text-video-title text-text-secondary pt-md border-t border-border-primary">
-                Esta transacción se procesará cuando el negocio confirme el cierre y ejecute la liquidación en Soroban.
-              </p>
+              {tx.txId ? (
+                <a
+                  href={getStellarExpertTxUrl(tx.txId)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full"
+                >
+                  <Button variant="neutral" size="small" iconEnd={<ExternalLink size={14} />} className="w-full">
+                    Ver transacción en Stellar Expert ↗
+                  </Button>
+                </a>
+              ) : null}
             </div>
           ))}
         </div>
@@ -1065,8 +1168,9 @@ export function TransactionHistory({ navigate, userType, setUserType }: NavProps
 // ─── Mockup 31 — Promoter Profile + Wallet ───────────────────────────────────
 
 export function PromoterProfile({ navigate, userType, setUserType }: NavProps) {
+  const { currentUser, promoterStats, participations } = useApp()
   const [editing, setEditing] = useState(false)
-  const [name, setName] = useState('Diego Huamani')
+  const [name, setName] = useState(currentUser.name || 'Diego Huamani')
   const [phone, setPhone] = useState('+51 999 888 777')
   const [toast, setToast] = useState(false)
 
@@ -1075,6 +1179,8 @@ export function PromoterProfile({ navigate, userType, setUserType }: NavProps) {
     setToast(true)
     setTimeout(() => setToast(false), 3000)
   }
+
+  const walletDisplay = currentUser.wallet ? truncateAddress(currentUser.wallet) : 'G...8XK2'
 
   return (
     <AppShell currentPage="promoter-profile" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -1144,22 +1250,33 @@ export function PromoterProfile({ navigate, userType, setUserType }: NavProps) {
                 <div className="w-2 h-2 rounded-full bg-success shrink-0" />
                 <Wallet size={15} className="text-brand-primary" />
                 <div className="flex-1">
-                  <p className="text-label-sm text-text-primary font-semibold">G...8XK2</p>
-                  <p className="text-video-title text-text-secondary">Wallet de recompensas</p>
+                  <p className="text-label-sm text-text-primary font-semibold">{walletDisplay}</p>
+                  <p className="text-video-title text-text-secondary">Wallet de recompensas Stellar</p>
                 </div>
                 <Badge label="Activa" variant="success" />
               </div>
               <p className="text-video-title text-text-secondary">
-                Esta wallet recibe tus recompensas en USDC cuando se ejecuta la liquidación.
+                Esta wallet recibe tus recompensas en USDC cuando se ejecuta la liquidación on-chain.
               </p>
-              <Button variant="neutral" size="small">Administrar wallet</Button>
+              {currentUser.wallet && (
+                <a
+                  href={getStellarExpertAccountUrl(currentUser.wallet)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block"
+                >
+                  <Button variant="neutral" size="small" iconEnd={<ExternalLink size={13} />}>
+                    Ver cuenta en Stellar Expert
+                  </Button>
+                </a>
+              )}
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-lg">
-              <StatTile label="Campañas" value={MOCK_PROMOTER_CAMPAIGNS.length} />
-              <StatTile label="Conversiones" value={PROMOTER_SUMMARY.totalConversions} />
-              <StatTile label="Ganancias" value={`${PROMOTER_SUMMARY.totalEarnings} USDC`} accent />
+              <StatTile label="Campañas" value={participations.length || 2} />
+              <StatTile label="Conversiones" value={promoterStats.totalConversions || 27} />
+              <StatTile label="Ganancias" value={`${promoterStats.totalEarnings || 63} USDC`} accent />
             </div>
 
             {/* Quick links */}
@@ -1174,7 +1291,7 @@ export function PromoterProfile({ navigate, userType, setUserType }: NavProps) {
                   <button
                     key={page}
                     onClick={() => navigate(page)}
-                    className="flex items-center gap-md py-md px-lg rounded-corner-md hover:bg-bg-faint transition-colors text-left border-b border-border-primary last:border-0"
+                    className="flex items-center gap-md py-md px-lg rounded-corner-md hover:bg-bg-faint transition-colors text-left border-b border-border-primary last:border-0 cursor-pointer"
                   >
                     <Icon size={15} className="text-brand-primary shrink-0" />
                     <span className="text-label-sm text-text-primary flex-1">{label}</span>

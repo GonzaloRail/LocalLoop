@@ -3,7 +3,7 @@ import freighter from '@stellar/freighter-api'
 
 export const HORIZON_TESTNET_URL = 'https://horizon-testnet.stellar.org'
 export const SOROBAN_RPC_TESTNET_URL = 'https://soroban-testnet.stellar.org'
-export const NETWORK_PASSPHRASE = Networks.TESTNET_NETWORK_PASSPHRASE
+export const NETWORK_PASSPHRASE = Networks.TESTNET
 export const FRIENDBOT_URL = 'https://friendbot.stellar.org'
 
 // Instancia del servidor Horizon para la red Testnet
@@ -109,11 +109,17 @@ export async function fetchAccountBalances(publicKey: string): Promise<{
       if (b.asset_type === 'native') {
         return { asset: 'XLM', balance: b.balance }
       }
+      if ('asset_code' in b) {
+        return {
+          asset: b.asset_code,
+          balance: b.balance,
+          code: b.asset_code,
+          issuer: b.asset_issuer,
+        }
+      }
       return {
-        asset: b.asset_code,
+        asset: 'LP',
         balance: b.balance,
-        code: b.asset_code,
-        issuer: b.asset_issuer,
       }
     })
 

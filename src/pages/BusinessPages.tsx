@@ -6,14 +6,12 @@ import {
 import {
   Plus, ArrowRight, CheckCircle, AlertCircle, ExternalLink,
   Pencil, Calendar, Wallet, BarChart2, ChevronRight, Download,
-  Rocket, Users
+  Rocket, Users, RefreshCw, Check, X
 } from 'lucide-react'
 import AppShell from '../components/AppShell'
-import { NavProps } from '../types'
-import {
-  MOCK_CAMPAIGNS, MOCK_CONVERSIONS, BUSINESS_SUMMARY,
-  LIQUIDATION_PROMOTERS
-} from '../data'
+import { NavProps, Conversion, Campaign } from '../types'
+import { useApp } from '../context/AppContext'
+import { getStellarExpertTxUrl, truncateAddress } from '../lib/stellar'
 
 const CARD = 'bg-surface-bg border border-border-primary rounded-corner-lg p-xl'
 
@@ -36,6 +34,8 @@ function StatusBadge({ status }: { status: string }) {
     liquidated: { variant: 'default', label: 'Liquidada' },
     pending: { variant: 'warning', label: 'Pendiente' },
     confirmed: { variant: 'success', label: 'Confirmada' },
+    rejected: { variant: 'danger', label: 'Rechazada' },
+    paid: { variant: 'success', label: 'Pagada' },
   }
   const cfg = map[status] ?? { variant: 'secondary', label: status }
   return <Badge label={cfg.label} variant={cfg.variant} />
@@ -69,8 +69,9 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
 // ─── Mockup 07 — Business Dashboard ──────────────────────────────────────────
 
 export function BusinessDashboard({ navigate, userType, setUserType }: NavProps) {
-  const activeCampaigns = MOCK_CAMPAIGNS.filter(c => c.status === 'active')
-  const closingCampaigns = MOCK_CAMPAIGNS.filter(c => c.status === 'closing')
+  const { campaigns, businessStats, currentUser } = useApp()
+  const activeCampaigns = campaigns.filter(c => c.status === 'active')
+  const closingCampaigns = campaigns.filter(c => c.status === 'closing')
 
   return (
     <AppShell currentPage="business-dashboard" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -83,7 +84,9 @@ export function BusinessDashboard({ navigate, userType, setUserType }: NavProps)
               01 — RESUMEN
             </span>
             <h1 className="text-title text-text-primary">Dashboard</h1>
-            <p className="text-label-sm text-text-secondary">Bienvenido, Eventos XYZ</p>
+            <p className="text-label-sm text-text-secondary">
+              Bienvenido, {currentUser.name || 'Eventos XYZ'}
+            </p>
           </div>
           <Button variant="primary" iconStart={<Plus size={16} />} onClick={() => navigate('create-campaign')}>
             Crear campaña
@@ -109,12 +112,12 @@ export function BusinessDashboard({ navigate, userType, setUserType }: NavProps)
         <div>
           <SectionHeading eyebrow="02 — MÉTRICAS" title="Actividad general" />
           <div className="grid grid-cols-3 gap-lg">
-            <StatTile label="Campañas activas" value={BUSINESS_SUMMARY.activeCampaigns} accent />
-            <StatTile label="En cierre" value={BUSINESS_SUMMARY.closingCampaigns} />
-            <StatTile label="Conversiones totales" value={BUSINESS_SUMMARY.totalConversions} />
-            <StatTile label="Recompensas pendientes" value={`${BUSINESS_SUMMARY.pendingRewards} USDC`} />
-            <StatTile label="Presupuesto utilizado" value={`${BUSINESS_SUMMARY.usedBudget} USDC`} />
-            <StatTile label="Campañas finalizadas" value={BUSINESS_SUMMARY.completedCampaigns} />
+            <StatTile label="Campañas activas" value={businessStats.activeCampaigns} accent />
+            <StatTile label="En cierre" value={businessStats.closingCampaigns} />
+            <StatTile label="Conversiones totales" value={businessStats.totalConversions} />
+            <StatTile label="Recompensas pendientes" value={`${businessStats.pendingRewards} USDC`} />
+            <StatTile label="Presupuesto utilizado" value={`${businessStats.usedBudget} USDC`} />
+            <StatTile label="Campañas finalizadas" value={businessStats.completedCampaigns} />
           </div>
         </div>
 
@@ -306,30 +309,56 @@ const VALIDATION_OPTIONS = [
 ]
 
 export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
+  const { createCampaign, fundCampaign, currentUser } = useApp()
   const [step, setStep] = useState(1)
   const [info, setInfo] = useState({ name: '', description: '', product: '', category: '', startDate: '', endDate: '' })
-  const [rewards, setRewards] = useState({ budget: '', reward: '', maxConversions: '' })
+  const [rewards, setRewards] = useState({ budget: '200', reward: '2', maxConversions: '100' })
   const [action, setAction] = useState({ action: '', validation: '', identifier: '', conditions: '' })
   const [funded, setFunded] = useState(false)
   const [funding, setFunding] = useState(false)
+  const [txHash, setTxHash] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; variant: 'success' | 'default' } | null>(null)
 
-  const budgetNum = Number(rewards.budget) || 0
-  const rewardNum = Number(rewards.reward) || 0
-  const maxCalc = rewardNum > 0 ? Math.floor(budgetNum / rewardNum) : 0
+  const budgetNum = Number(rewards.budget) || 200
+  const rewardNum = Number(rewards.reward) || 2
+  const maxCalc = rewardNum > 0 ? Math.floor(budgetNum / rewardNum) : 100
 
   function fund() {
     setFunding(true)
     setTimeout(() => {
+      const generatedTx = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
+      setTxHash(generatedTx)
       setFunding(false)
       setFunded(true)
-      setToast({ msg: '✓ Campaña financiada en la red Stellar', variant: 'success' })
+      setToast({ msg: '✓ Campaña financiada en la red Stellar Testnet', variant: 'success' })
     }, 1200)
   }
 
   function publish() {
-    setToast({ msg: '🚀 Campaña publicada correctamente', variant: 'success' })
-    setTimeout(() => navigate('my-campaigns'), 1200)
+    const finalName = info.name.trim() || 'Concierto Universitario'
+    const newCamp = createCampaign({
+      name: finalName,
+      business: currentUser.name || 'Eventos XYZ',
+      businessWallet: currentUser.wallet || undefined,
+      category: info.category || 'Entretenimiento',
+      description: info.description || 'Campaña de resultados con liquidación en Stellar.',
+      startDate: info.startDate || new Date().toLocaleDateString('es-PE'),
+      endDate: info.endDate || '30/11/2026',
+      budget: budgetNum,
+      reward: rewardNum,
+      maxConversions: Number(rewards.maxConversions) || maxCalc,
+      daysLeft: 30,
+      conversionAction: action.action || 'Compra de una entrada',
+      validationMethod: action.validation || 'Código + número de entrada',
+      conditions: action.conditions || 'La compra debe realizarse durante la vigencia de la campaña.',
+    })
+
+    if (txHash) {
+      fundCampaign(newCamp.id, txHash)
+    }
+
+    setToast({ msg: '🚀 Campaña publicada correctamente en LocalLoop', variant: 'success' })
+    setTimeout(() => navigate('my-campaigns'), 800)
   }
 
   const previewName = info.name || 'Concierto Universitario'
@@ -545,7 +574,7 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
 
 // ─── Mockup 14 — My Campaigns ────────────────────────────────────────────────
 
-function CampaignCard({ campaign: c, onClick }: { campaign: typeof MOCK_CAMPAIGNS[0]; onClick: () => void }) {
+function CampaignCard({ campaign: c, onClick }: { campaign: Campaign; onClick: () => void }) {
   return (
     <div
       className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-md cursor-pointer hover:bg-bg-faint transition-colors"
@@ -578,15 +607,19 @@ function CampaignCard({ campaign: c, onClick }: { campaign: typeof MOCK_CAMPAIGN
 }
 
 export function MyCampaigns({ navigate, userType, setUserType }: NavProps) {
+  const { campaigns } = useApp()
   const tabs = [
     {
       id: 'active',
       label: 'Activas',
       content: (
         <div className="flex flex-col gap-lg pt-lg">
-          {MOCK_CAMPAIGNS.filter(c => c.status === 'active').map(c => (
+          {campaigns.filter(c => c.status === 'active').map(c => (
             <CampaignCard key={c.id} campaign={c} onClick={() => navigate('campaign-detail', { campaignId: c.id })} />
           ))}
+          {campaigns.filter(c => c.status === 'active').length === 0 && (
+            <p className="text-label-sm text-text-secondary py-md">No tienes campañas activas actualmente.</p>
+          )}
         </div>
       ),
     },
@@ -595,9 +628,12 @@ export function MyCampaigns({ navigate, userType, setUserType }: NavProps) {
       label: 'En cierre',
       content: (
         <div className="flex flex-col gap-lg pt-lg">
-          {MOCK_CAMPAIGNS.filter(c => c.status === 'closing').map(c => (
+          {campaigns.filter(c => c.status === 'closing').map(c => (
             <CampaignCard key={c.id} campaign={c} onClick={() => navigate('close-campaign', { campaignId: c.id })} />
           ))}
+          {campaigns.filter(c => c.status === 'closing').length === 0 && (
+            <p className="text-label-sm text-text-secondary py-md">No hay campañas en cierre.</p>
+          )}
         </div>
       ),
     },
@@ -605,8 +641,13 @@ export function MyCampaigns({ navigate, userType, setUserType }: NavProps) {
       id: 'liquidated',
       label: 'Liquidadas',
       content: (
-        <div className="pt-lg">
-          <p className="text-label-sm text-text-secondary">No hay campañas liquidadas todavía.</p>
+        <div className="flex flex-col gap-lg pt-lg">
+          {campaigns.filter(c => c.status === 'liquidated').map(c => (
+            <CampaignCard key={c.id} campaign={c} onClick={() => navigate('campaign-detail', { campaignId: c.id })} />
+          ))}
+          {campaigns.filter(c => c.status === 'liquidated').length === 0 && (
+            <p className="text-label-sm text-text-secondary py-md">No hay campañas liquidadas todavía.</p>
+          )}
         </div>
       ),
     },
@@ -642,11 +683,20 @@ export function MyCampaigns({ navigate, userType, setUserType }: NavProps) {
 // ─── Mockup 15 — Campaign Detail ──────────────────────────────────────────────
 
 export function CampaignDetail({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[0]
-  const promoters = [
-    { name: 'Diego Huamani', code: 'DIEGO82', conversions: 35 },
-    { name: 'Ana López', code: 'ANA45', conversions: 20 },
-    { name: 'Juan Pérez', code: 'JUAN73', conversions: 15 },
+  const { campaigns, conversions, participations, closeCampaign } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
+
+  const campConversions = conversions.filter(c => c.campaignId === campaign.id)
+  const campParts = participations.filter(p => p.campaignId === campaign.id)
+
+  const promoters = campParts.map(p => {
+    const pConvs = campConversions.filter(c => c.code === p.code).length
+    return { name: p.promoterName, code: p.code, conversions: pConvs }
+  })
+
+  // Fallback si no hay participaciones creadas aún
+  const displayPromoters = promoters.length > 0 ? promoters : [
+    { name: 'Diego Huamani', code: 'DIEGO82', conversions: campConversions.length },
   ]
 
   return (
@@ -696,7 +746,7 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
             action={
               <div className="flex items-center gap-xs text-video-title text-text-secondary">
                 <Users size={13} />
-                <span>{promoters.length} promotores</span>
+                <span>{displayPromoters.length} promotores</span>
               </div>
             }
           />
@@ -706,7 +756,7 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
               <span className="w-28 text-text-secondary">CÓDIGO</span>
               <span className="w-24 text-right text-text-secondary">CONVERSIONES</span>
             </div>
-            {promoters.map((p, i) => (
+            {displayPromoters.map((p, i) => (
               <div key={p.code} className="flex gap-xl items-center py-md border-b border-border-primary last:border-0">
                 <div className="flex-1 flex items-center gap-md">
                   <Avatar type="initial" initials={p.name.split(' ').map(n => n[0]).join('')} size="small" shape="circle" />
@@ -739,23 +789,43 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
 // ─── Mockup 16 — Campaign Conversions ────────────────────────────────────────
 
 export function CampaignConversions({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[0]
+  const { campaigns, conversions, confirmConversion, rejectConversion } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
+  const campaignConversions = conversions.filter(c => c.campaignId === campaign?.id)
 
   const tabs = [
     {
       id: 'all',
-      label: 'Todas',
-      content: <ConversionTable conversions={MOCK_CONVERSIONS.filter(c => c.campaignId === campaign.id)} />,
+      label: `Todas (${campaignConversions.length})`,
+      content: (
+        <ConversionTable
+          conversions={campaignConversions}
+          onConfirm={confirmConversion}
+          onReject={rejectConversion}
+        />
+      ),
     },
     {
       id: 'pending',
-      label: 'Pendientes',
-      content: <ConversionTable conversions={MOCK_CONVERSIONS.filter(c => c.campaignId === campaign.id && c.status === 'pending')} />,
+      label: `Pendientes (${campaignConversions.filter(c => c.status === 'pending').length})`,
+      content: (
+        <ConversionTable
+          conversions={campaignConversions.filter(c => c.status === 'pending')}
+          onConfirm={confirmConversion}
+          onReject={rejectConversion}
+        />
+      ),
     },
     {
       id: 'confirmed',
-      label: 'Confirmadas',
-      content: <ConversionTable conversions={MOCK_CONVERSIONS.filter(c => c.campaignId === campaign.id && c.status === 'confirmed')} />,
+      label: `Confirmadas (${campaignConversions.filter(c => c.status === 'confirmed').length})`,
+      content: (
+        <ConversionTable
+          conversions={campaignConversions.filter(c => c.status === 'confirmed')}
+          onConfirm={confirmConversion}
+          onReject={rejectConversion}
+        />
+      ),
     },
   ]
 
@@ -765,12 +835,12 @@ export function CampaignConversions({ navigate, params, userType, setUserType }:
 
         {/* Page header */}
         <div className="pb-2xl border-b border-border-primary">
-          <button onClick={() => navigate('campaign-detail', { campaignId: campaign.id })} className="text-label-sm text-text-secondary hover:text-text-primary mb-md block">← Detalle</button>
+          <button onClick={() => navigate('campaign-detail', { campaignId: campaign?.id })} className="text-label-sm text-text-secondary hover:text-text-primary mb-md block">← Detalle</button>
           <span className="text-brand-primary font-semibold block mb-xs" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
             01 — REGISTRO
           </span>
           <h1 className="text-title text-text-primary">Conversiones</h1>
-          <p className="text-label-sm text-text-secondary mt-xs">{campaign.name}</p>
+          <p className="text-label-sm text-text-secondary mt-xs">{campaign?.name || 'Campaña'}</p>
         </div>
 
         <div className={CARD}>
@@ -782,7 +852,15 @@ export function CampaignConversions({ navigate, params, userType, setUserType }:
   )
 }
 
-function ConversionTable({ conversions }: { conversions: typeof MOCK_CONVERSIONS }) {
+function ConversionTable({
+  conversions,
+  onConfirm,
+  onReject,
+}: {
+  conversions: Conversion[]
+  onConfirm?: (id: string) => void
+  onReject?: (id: string) => void
+}) {
   if (conversions.length === 0) {
     return <p className="text-label-sm text-text-secondary pt-lg">No hay conversiones en este estado.</p>
   }
@@ -795,6 +873,7 @@ function ConversionTable({ conversions }: { conversions: typeof MOCK_CONVERSIONS
         <span className="w-24 text-text-secondary">FECHA</span>
         <span className="w-20 text-right text-text-secondary">REWARD</span>
         <span className="w-24 text-right text-text-secondary">ESTADO</span>
+        {(onConfirm || onReject) && <span className="w-20 text-right text-text-secondary">ACCIÓN</span>}
       </div>
       {conversions.map(c => (
         <div key={c.id} className="flex gap-md items-center py-md border-b border-border-primary last:border-0">
@@ -806,6 +885,30 @@ function ConversionTable({ conversions }: { conversions: typeof MOCK_CONVERSIONS
           <div className="w-24 flex justify-end">
             <StatusBadge status={c.status} />
           </div>
+          {(onConfirm || onReject) && (
+            <div className="w-20 flex justify-end gap-xs">
+              {c.status === 'pending' ? (
+                <>
+                  <button
+                    onClick={() => onConfirm?.(c.id)}
+                    className="p-1 rounded bg-brand-primary text-on-brand hover:opacity-80 transition-opacity cursor-pointer"
+                    title="Confirmar conversión"
+                  >
+                    <Check size={13} />
+                  </button>
+                  <button
+                    onClick={() => onReject?.(c.id)}
+                    className="p-1 rounded bg-bg-faint text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
+                    title="Rechazar conversión"
+                  >
+                    <X size={13} />
+                  </button>
+                </>
+              ) : (
+                <span className="text-video-title text-text-secondary">-</span>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -815,8 +918,16 @@ function ConversionTable({ conversions }: { conversions: typeof MOCK_CONVERSIONS
 // ─── Mockup 17 — Close Campaign ───────────────────────────────────────────────
 
 export function CloseCampaign({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[2]
+  const { campaigns, closeCampaign } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
   const [confirmed, setConfirmed] = useState(false)
+
+  const handleConfirmClose = () => {
+    if (campaign) {
+      closeCampaign(campaign.id)
+      navigate('liquidation-summary', { campaignId: campaign.id })
+    }
+  }
 
   return (
     <AppShell currentPage="my-campaigns" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -829,7 +940,7 @@ export function CloseCampaign({ navigate, params, userType, setUserType }: NavPr
             01 — CIERRE
           </span>
           <h1 className="text-title text-text-primary">Cierre de campaña</h1>
-          <p className="text-label-sm text-text-secondary mt-xs">{campaign.name}</p>
+          <p className="text-label-sm text-text-secondary mt-xs">{campaign?.name}</p>
         </div>
 
         <div className={CARD}>
@@ -844,8 +955,8 @@ export function CloseCampaign({ navigate, params, userType, setUserType }: NavPr
             Una vez confirmado, se procederá con la liquidación en Soroban.
           </p>
           <div className="grid grid-cols-2 gap-lg">
-            <StatTile label="Conversiones registradas" value={campaign.conversions} />
-            <StatTile label="Recompensas totales" value={`${campaign.usedBudget} USDC`} />
+            <StatTile label="Conversiones registradas" value={campaign?.conversions ?? 0} />
+            <StatTile label="Recompensas totales" value={`${campaign?.usedBudget ?? 0} USDC`} />
           </div>
         </div>
 
@@ -854,7 +965,7 @@ export function CloseCampaign({ navigate, params, userType, setUserType }: NavPr
           <p className="text-label-sm text-text-secondary">
             Verifica el listado completo de conversiones antes de confirmar el cierre.
           </p>
-          <Button variant="neutral" onClick={() => navigate('campaign-conversions', { campaignId: campaign.id })}>
+          <Button variant="neutral" onClick={() => navigate('campaign-conversions', { campaignId: campaign?.id })}>
             Ver conversiones registradas →
           </Button>
         </div>
@@ -868,7 +979,7 @@ export function CloseCampaign({ navigate, params, userType, setUserType }: NavPr
           <Button
             variant="primary"
             disabled={!confirmed}
-            onClick={() => navigate('liquidation-summary', { campaignId: campaign.id })}
+            onClick={handleConfirmClose}
           >
             Confirmar cierre y proceder con liquidación
           </Button>
@@ -882,7 +993,51 @@ export function CloseCampaign({ navigate, params, userType, setUserType }: NavPr
 // ─── Mockup 18 — Liquidation Summary ─────────────────────────────────────────
 
 export function LiquidationSummary({ navigate, params, userType, setUserType }: NavProps) {
-  const campaign = MOCK_CAMPAIGNS.find(c => c.id === params.campaignId) ?? MOCK_CAMPAIGNS[2]
+  const { campaigns, conversions, liquidateCampaign } = useApp()
+  const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  // Conversiones confirmadas o pendientes de la campaña
+  const campaignConversions = conversions.filter(c => c.campaignId === campaign?.id && (c.status === 'confirmed' || c.status === 'pending'))
+
+  // Agrupar por promotor
+  const promoterMap = new Map<string, { name: string; conversions: number; reward: number }>()
+  campaignConversions.forEach(c => {
+    const existing = promoterMap.get(c.code) || { name: c.promoter, conversions: 0, reward: 0 }
+    existing.conversions += 1
+    existing.reward += c.reward
+    promoterMap.set(c.code, existing)
+  })
+
+  // Fallback si no hay conversiones generadas
+  const promotersList = promoterMap.size > 0
+    ? Array.from(promoterMap.values())
+    : [
+        { name: 'Ana Morales', conversions: 35, reward: 70 },
+        { name: 'Carlos Vega', conversions: 22, reward: 44 },
+        { name: 'Lucía Torres', conversions: 13, reward: 26 },
+      ]
+
+  const totalConversions = promotersList.reduce((acc, p) => acc + p.conversions, 0)
+  const totalReward = promotersList.reduce((acc, p) => acc + p.reward, 0)
+
+  const handleExecuteLiquidation = () => {
+    setIsProcessing(true)
+    const simulatedTxHash = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
+    if (campaign) {
+      liquidateCampaign(campaign.id, simulatedTxHash)
+    }
+    setTimeout(() => {
+      setIsProcessing(false)
+      navigate('liquidation-complete', {
+        campaignId: campaign?.id,
+        txHash: simulatedTxHash,
+        totalPaid: totalReward,
+        promoterCount: promotersList.length,
+        totalConversions,
+      })
+    }, 600)
+  }
 
   return (
     <AppShell currentPage="my-campaigns" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -890,12 +1045,12 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
 
         {/* Page header */}
         <div className="pb-2xl border-b border-border-primary">
-          <button onClick={() => navigate('close-campaign', { campaignId: campaign.id })} className="text-label-sm text-text-secondary hover:text-text-primary mb-md block">← Cierre</button>
+          <button onClick={() => navigate('close-campaign', { campaignId: campaign?.id })} className="text-label-sm text-text-secondary hover:text-text-primary mb-md block">← Cierre</button>
           <span className="text-brand-primary font-semibold block mb-xs" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
             01 — LIQUIDACIÓN
           </span>
           <h1 className="text-title text-text-primary">Resumen de liquidación</h1>
-          <p className="text-label-sm text-text-secondary mt-xs">{campaign.name}</p>
+          <p className="text-label-sm text-text-secondary mt-xs">{campaign?.name}</p>
         </div>
 
         {/* Promoter breakdown */}
@@ -907,7 +1062,7 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
               <span className="w-28 text-right text-text-secondary">CONVERSIONES</span>
               <span className="w-28 text-right text-text-secondary">RECOMPENSA</span>
             </div>
-            {LIQUIDATION_PROMOTERS.map(p => (
+            {promotersList.map(p => (
               <div key={p.name} className="flex gap-xl items-center py-md border-b border-border-primary last:border-0">
                 <div className="flex-1 flex items-center gap-md">
                   <Avatar type="initial" initials={p.name.split(' ').map(n => n[0]).join('')} size="small" shape="circle" />
@@ -919,8 +1074,8 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
             ))}
             <div className="flex gap-xl items-center pt-md border-t border-border-primary mt-xs">
               <span className="flex-1 text-label text-text-primary font-semibold">Total</span>
-              <span className="w-28 text-right text-label text-text-primary font-semibold">70</span>
-              <span className="w-28 text-right text-label text-brand-primary font-semibold">140 USDC</span>
+              <span className="w-28 text-right text-label text-text-primary font-semibold">{totalConversions}</span>
+              <span className="w-28 text-right text-label text-brand-primary font-semibold">{totalReward} USDC</span>
             </div>
           </div>
         </div>
@@ -929,7 +1084,7 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
         <div className={`${CARD} flex flex-col gap-lg`}>
           <SectionHeading eyebrow="03 — PROCESO" title="Liquidación en Stellar" />
           <p className="text-label-sm text-text-secondary">
-            Soroban ejecutará las reglas del contrato inteligente y distribuirá los USDC a cada promotor via Stellar.
+            Soroban ejecutará las reglas del contrato inteligente y distribuirá los USDC a cada promotor via Stellar Testnet.
           </p>
           <div className="flex items-center justify-around py-lg bg-bg-faint rounded-corner-md border border-border-primary">
             {['Soroban', '→', 'Stellar', '→', 'Promotores'].map((item, i) => (
@@ -946,8 +1101,13 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
           </div>
         </div>
 
-        <Button variant="primary" iconStart={<Rocket size={16} />} onClick={() => navigate('liquidation-complete', { campaignId: campaign.id })}>
-          Ejecutar liquidación
+        <Button
+          variant="primary"
+          disabled={isProcessing}
+          iconStart={<Rocket size={16} />}
+          onClick={handleExecuteLiquidation}
+        >
+          {isProcessing ? 'Liquidando en Stellar…' : 'Ejecutar liquidación'}
         </Button>
 
       </div>
@@ -957,7 +1117,15 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
 
 // ─── Mockup 19 — Liquidation Complete ────────────────────────────────────────
 
-export function LiquidationComplete({ navigate, userType, setUserType }: NavProps) {
+export function LiquidationComplete({ navigate, params, userType, setUserType }: NavProps) {
+  const { campaigns } = useApp()
+  const campaign = campaigns.find(c => c.id === params?.campaignId)
+
+  const txHash = (params?.txHash as string) || campaign?.liquidationTxHash || 'd8a37fe92b104ac7893f619e0b921fa4c8e103987bf5d612e4c5b981290fa123'
+  const totalConversions = (params?.totalConversions as number) ?? (campaign ? campaign.conversions : 70)
+  const totalDistributed = (params?.totalPaid as number) ?? (campaign ? campaign.usedBudget : 140)
+  const promoterCount = (params?.promoterCount as number) ?? 3
+
   return (
     <AppShell currentPage="business-history" navigate={navigate} userType={userType} setUserType={setUserType}>
       <div className="p-2xl flex flex-col items-center gap-2xl max-w-lg mx-auto pt-2xl text-center">
@@ -980,9 +1148,9 @@ export function LiquidationComplete({ navigate, userType, setUserType }: NavProp
 
         <div className={`${CARD} w-full text-left flex flex-col`}>
           {[
-            { label: 'Conversiones liquidadas', value: '70' },
-            { label: 'Total distribuido', value: '140 USDC' },
-            { label: 'Promotores pagados', value: '3' },
+            { label: 'Conversiones liquidadas', value: String(totalConversions) },
+            { label: 'Total distribuido', value: `${totalDistributed} USDC` },
+            { label: 'Promotores pagados', value: String(promoterCount) },
           ].map(row => (
             <div key={row.label} className="flex justify-between items-center py-md border-b border-border-primary last:border-0">
               <span className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>{row.label.toUpperCase()}</span>
@@ -992,8 +1160,16 @@ export function LiquidationComplete({ navigate, userType, setUserType }: NavProp
           <div className="flex items-center justify-between pt-md">
             <span className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>TX STELLAR</span>
             <div className="flex items-center gap-xs">
-              <span className="text-label-sm text-brand-primary font-semibold">GABCDE...XK2</span>
-              <Button variant="subtle" size="small" iconEnd={<ExternalLink size={13} />}>Ver</Button>
+              <span className="text-label-sm text-brand-primary font-semibold">{truncateAddress(txHash)}</span>
+              <a
+                href={getStellarExpertTxUrl(txHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-xs text-brand-primary hover:underline text-label-sm"
+              >
+                <span>Ver</span>
+                <ExternalLink size={13} />
+              </a>
             </div>
           </div>
         </div>
@@ -1011,10 +1187,18 @@ export function LiquidationComplete({ navigate, userType, setUserType }: NavProp
 // ─── Mockup 20 — Business History ────────────────────────────────────────────
 
 export function BusinessHistory({ navigate, userType, setUserType }: NavProps) {
-  const entries = [
-    { name: 'Concierto Universitario', amount: '140 USDC', status: 'liquidated', date: '20/10/2026', conversions: 70, promoters: 3, tx: 'GABCDE...XK2' },
-    { name: 'Restaurante El Sabor', amount: '44 USDC', status: 'closing', date: '30/09/2026', conversions: 22, promoters: 1, tx: null },
-  ]
+  const { campaigns } = useApp()
+
+  const entries = campaigns.map(c => ({
+    id: c.id,
+    name: c.name,
+    amount: `${c.usedBudget} USDC`,
+    status: c.status,
+    date: c.startDate || '20/10/2026',
+    conversions: c.conversions,
+    promoters: 3,
+    tx: c.liquidationTxHash || c.fundingTxHash || null,
+  }))
 
   return (
     <AppShell currentPage="business-history" navigate={navigate} userType={userType} setUserType={setUserType}>
@@ -1034,7 +1218,7 @@ export function BusinessHistory({ navigate, userType, setUserType }: NavProps) {
 
         <div className="flex flex-col gap-lg">
           {entries.map(e => (
-            <div key={e.name} className={`${CARD} flex flex-col gap-md`}>
+            <div key={e.id} className={`${CARD} flex flex-col gap-md`}>
               <div className="flex items-start justify-between pb-md border-b border-border-primary">
                 <div>
                   <p className="text-label text-text-primary font-semibold">{e.name}</p>
@@ -1057,10 +1241,20 @@ export function BusinessHistory({ navigate, userType, setUserType }: NavProps) {
                 </div>
               </div>
               {e.tx && (
-                <div className="flex items-center gap-xs bg-bg-faint rounded-corner-md px-md py-sm border border-border-primary">
-                  <span className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>TX STELLAR</span>
-                  <span className="text-video-title text-brand-primary font-semibold ml-xs">{e.tx}</span>
-                  <Button variant="subtle" size="small" iconEnd={<ExternalLink size={12} />}>Ver</Button>
+                <div className="flex items-center justify-between bg-bg-faint rounded-corner-md px-md py-sm border border-border-primary">
+                  <div className="flex items-center gap-xs">
+                    <span className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>TX STELLAR</span>
+                    <span className="text-video-title text-brand-primary font-semibold ml-xs">{truncateAddress(e.tx)}</span>
+                  </div>
+                  <a
+                    href={getStellarExpertTxUrl(e.tx)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-xs text-brand-primary hover:underline text-label-sm"
+                  >
+                    <span>Ver en Stellar Expert</span>
+                    <ExternalLink size={12} />
+                  </a>
                 </div>
               )}
             </div>

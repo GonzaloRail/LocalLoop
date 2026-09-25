@@ -1,18 +1,42 @@
 import React, { useState } from 'react'
 import { Page, UserType } from './types'
-import { LandingPage, SelectTypePage, RegisterBusinessPage, RegisterPromoterPage, AccountCreatedPage, LoginPage } from './pages/AuthPages'
+import { AppProvider } from './context/AppContext'
 import {
-  BusinessDashboard, BusinessProfile, CreateCampaign, MyCampaigns,
-  CampaignDetail, CampaignConversions, CloseCampaign,
-  LiquidationSummary, LiquidationComplete, BusinessHistory
+  LandingPage,
+  SelectTypePage,
+  RegisterBusinessPage,
+  RegisterPromoterPage,
+  AccountCreatedPage,
+  LoginPage,
+} from './pages/AuthPages'
+import {
+  BusinessDashboard,
+  BusinessProfile,
+  CreateCampaign,
+  MyCampaigns,
+  CampaignDetail,
+  CampaignConversions,
+  CloseCampaign,
+  LiquidationSummary,
+  LiquidationComplete,
+  BusinessHistory,
 } from './pages/BusinessPages'
 import {
-  PromoterDashboard, ExploreCampaigns, CampaignDetailPromoter,
-  JoinConfirmation, MyCode, PromoterCampaigns, PromoterCampaignDetail,
-  PromoterEarnings, AccountStatement, TransactionHistory, PromoterProfile
+  PromoterDashboard,
+  ExploreCampaigns,
+  CampaignDetailPromoter,
+  JoinConfirmation,
+  MyCode,
+  PromoterCampaigns,
+  PromoterCampaignDetail,
+  PromoterEarnings,
+  AccountStatement,
+  TransactionHistory,
+  PromoterProfile,
 } from './pages/PromoterPages'
+import { DemoFlowPage } from './pages/DemoFlowPage'
 
-export default function App() {
+function AppContent() {
   const [page, setPage] = useState<Page>('landing')
   const [params, setParams] = useState<Record<string, unknown>>({})
   const [userType, setUserType] = useState<UserType>(null)
@@ -25,7 +49,7 @@ export default function App() {
 
   const navProps = { navigate, params, userType, setUserType }
 
-  const pages: Record<Page, React.ReactElement> = {
+  const pages: Record<string, React.ReactElement> = {
     landing: <LandingPage {...navProps} />,
     'select-type': <SelectTypePage {...navProps} />,
     'register-business': <RegisterBusinessPage {...navProps} />,
@@ -54,7 +78,16 @@ export default function App() {
     'account-statement': <AccountStatement {...navProps} />,
     'transaction-history': <TransactionHistory {...navProps} />,
     'promoter-profile': <PromoterProfile {...navProps} />,
+    'demo-flow': <DemoFlowPage {...navProps} />,
   }
 
   return pages[page] ?? pages.landing
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  )
 }
