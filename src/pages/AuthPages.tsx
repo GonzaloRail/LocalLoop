@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, ButtonGroup, InputField, TextareaField, SelectField, Badge, AstraLogo, useTheme } from '@figma/astraui'
 import { Building2, User, Zap, Moon, Sun, ArrowRight, CheckCircle, Wallet, Share2, BarChart2, Landmark } from 'lucide-react'
 import { NavProps } from '../types'
+import { WalletConnectBox } from '../components/WalletConnectBox'
 
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
@@ -380,7 +381,6 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
     name: '', email: '', password: '', category: '', description: '', phone: '', address: ''
   })
   const [wallet, setWallet] = useState<string | null>(null)
-  const [connecting, setConnecting] = useState(false)
 
   const CATEGORY_OPTIONS = [
     { value: 'entretenimiento', label: 'Entretenimiento' },
@@ -391,11 +391,6 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
     { value: 'servicios', label: 'Servicios' },
     { value: 'otro', label: 'Otro' },
   ]
-
-  function connectWallet() {
-    setConnecting(true)
-    setTimeout(() => { setConnecting(false); setWallet('G...8F3K') }, 900)
-  }
 
   return (
     <AuthSplit
@@ -438,21 +433,11 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
               rows={2}
               onChange={v => setForm(f => ({ ...f, description: v }))}
             />
-            <div className="flex flex-col gap-sm">
-              <p className="text-label-sm text-text-primary font-medium">Wallet Stellar</p>
-              {wallet ? (
-                <div className="flex items-center gap-md bg-bg-faint border border-border-primary rounded-corner-md p-md">
-                  <div className="w-2 h-2 rounded-full bg-success shrink-0" />
-                  <span className="text-label-sm text-text-primary font-semibold flex-1">{wallet}</span>
-                  <Badge label="Conectada" variant="success" />
-                </div>
-              ) : (
-                <Button variant="neutral" disabled={connecting} onClick={connectWallet}>
-                  {connecting ? 'Conectando…' : 'Conectar con Freighter'}
-                </Button>
-              )}
-              <p className="text-video-title text-text-secondary">Solo se recibe tu dirección pública.</p>
-            </div>
+            <WalletConnectBox
+              wallet={wallet}
+              onWalletChange={setWallet}
+              helperText="Solo se recibe tu dirección pública para gestionar la custodia en Stellar."
+            />
           </div>
           <Button variant="primary" onClick={() => { setUserType('business'); navigate('account-created') }}>
             Crear cuenta de negocio
@@ -472,12 +457,6 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
 export function RegisterPromoterPage({ navigate, setUserType }: NavProps) {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' })
   const [wallet, setWallet] = useState<string | null>(null)
-  const [connecting, setConnecting] = useState(false)
-
-  function connectWallet() {
-    setConnecting(true)
-    setTimeout(() => { setConnecting(false); setWallet('G...8XK2') }, 900)
-  }
 
   return (
     <AuthSplit
@@ -500,21 +479,11 @@ export function RegisterPromoterPage({ navigate, setUserType }: NavProps) {
             <InputField label="Correo electrónico" value={form.email} placeholder="promotor@email.com" onChange={v => setForm(f => ({ ...f, email: v }))} />
             <InputField label="Contraseña" value={form.password} placeholder="••••••••" onChange={v => setForm(f => ({ ...f, password: v }))} />
             <InputField label="Teléfono (opcional)" value={form.phone} placeholder="+51 999 999 999" onChange={v => setForm(f => ({ ...f, phone: v }))} />
-            <div className="flex flex-col gap-sm">
-              <p className="text-label-sm text-text-primary font-medium">Wallet Stellar</p>
-              {wallet ? (
-                <div className="flex items-center gap-md bg-bg-faint border border-border-primary rounded-corner-md p-md">
-                  <div className="w-2 h-2 rounded-full bg-success shrink-0" />
-                  <span className="text-label-sm text-text-primary font-semibold flex-1">{wallet}</span>
-                  <Badge label="Conectada" variant="success" />
-                </div>
-              ) : (
-                <Button variant="neutral" disabled={connecting} onClick={connectWallet}>
-                  {connecting ? 'Conectando…' : 'Conectar con Freighter'}
-                </Button>
-              )}
-              <p className="text-video-title text-text-secondary">Esta wallet recibirá tus recompensas en USDC.</p>
-            </div>
+            <WalletConnectBox
+              wallet={wallet}
+              onWalletChange={setWallet}
+              helperText="Esta wallet recibirá tus recompensas en USDC mediante Stellar."
+            />
           </div>
           <Button variant="primary" onClick={() => { setUserType('promoter'); navigate('account-created') }}>
             Crear cuenta de promotor
