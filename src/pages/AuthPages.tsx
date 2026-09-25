@@ -491,15 +491,16 @@ export function LandingPage({ navigate, setUserType }: NavProps) {
               <div className="flex flex-col gap-3 max-w-xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-medium self-start">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  Entregable Hackathon · Open Build
+                  Transparencia Criptográfica · Stellar Testnet
                 </div>
                 <h3 className="text-2xl font-bold text-text-primary">
-                  Evidencia On-Chain en Stellar Testnet
+                  Liquidaciones Auditables en Tiempo Real
                 </h3>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  Esta dApp emite transacciones reales y verificables en la red pública de Stellar Testnet. Puedes consultar el ledger, firmas y metadatos del escrow directamente en el explorador oficial.
+                  LocalLoop ejecuta la custodia de recompensas y pagos de forma no-custodial en la red pública de Stellar. Cualquier negocio o promotor puede auditar los ledgers, firmas criptográficas y contratos de custodia directamente en el explorador oficial.
                 </p>
                 <div className="pt-2 flex flex-wrap items-center gap-3">
+
                   <a
                     href={LIVE_TESTNET_TX_URL}
                     target="_blank"
