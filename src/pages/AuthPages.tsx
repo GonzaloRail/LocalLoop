@@ -2,11 +2,18 @@ import { useState } from 'react'
 import { Button, ButtonGroup, InputField, TextareaField, SelectField, Badge, useTheme } from '@figma/astraui'
 import {
   Building2, User, Zap, Moon, Sun, ArrowRight, CheckCircle, Wallet,
-  Share2, BarChart2, Landmark, ExternalLink, ShieldCheck, Sparkles, Copy, Check, ChevronRight
+  Share2, BarChart2, Landmark, ExternalLink, ShieldCheck, Sparkles, Copy, Check, ChevronRight, AlertCircle, Key
 } from 'lucide-react'
 import { NavProps } from '../types'
 import { WalletConnectBox } from '../components/WalletConnectBox'
 import { Logo } from '../components/Logo'
+import { useApp } from '../context/AppContext'
+import { ValidatedInput, ValidatedTextarea, ValidatedSelect } from '../components/FormValidation'
+import {
+  validateBusinessRegistration,
+  validatePromoterRegistration,
+  isValidEmail,
+} from '../lib/validation'
 
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
@@ -633,20 +640,70 @@ export function SelectTypePage({ navigate, setUserType }: NavProps) {
 // ─── Register Business ────────────────────────────────────────────────────────
 
 export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
+  const { setCurrentUser } = useApp()
   const [form, setForm] = useState({
-    name: '', email: '', password: '', category: '', description: '', phone: '', address: ''
+    name: '',
+    email: '',
+    password: '',
+    category: '',
+    description: '',
+    phone: '',
+    address: '',
   })
   const [wallet, setWallet] = useState<string | null>(null)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
 
   const CATEGORY_OPTIONS = [
-    { value: 'entretenimiento', label: 'Entretenimiento' },
-    { value: 'gastronomia', label: 'Gastronomía' },
-    { value: 'salud', label: 'Salud y Bienestar' },
-    { value: 'educacion', label: 'Educación' },
-    { value: 'retail', label: 'Retail' },
-    { value: 'servicios', label: 'Servicios' },
-    { value: 'otro', label: 'Otro' },
+    { value: 'entretenimiento', label: 'Entretenimiento & Eventos' },
+    { value: 'gastronomia', label: 'Gastronomía & Restaurantes' },
+    { value: 'salud', label: 'Salud, Deporte & Bienestar' },
+    { value: 'educacion', label: 'Educación & Cursos' },
+    { value: 'retail', label: 'Retail & Comercio Local' },
+    { value: 'servicios', label: 'Servicios Profesionales' },
+    { value: 'otro', label: 'Otro Rubro' },
   ]
+
+  const errors = validateBusinessRegistration({
+    name: form.name,
+    email: form.email,
+    password: form.password,
+    category: form.category,
+    phone: form.phone,
+    wallet,
+  })
+
+  function handleBlur(field: string) {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
+  function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    setSubmitAttempted(true)
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      category: true,
+      phone: true,
+      wallet: true,
+    })
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
+    setCurrentUser({
+      type: 'business',
+      name: form.name.trim(),
+      email: form.email.trim(),
+      wallet: wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
+    })
+    setUserType('business')
+    navigate('account-created')
+  }
+
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <AuthSplit
@@ -654,53 +711,130 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
         <BrandPanel
           eyebrow="Registro · Negocio"
           headline="Crea tu primera campaña de resultados."
-          sub="Registra tu empresa. Fondos bloqueados hasta verificar cada conversión."
+          sub="Registra tu empresa con validación estricta y custodia transparente en la red Stellar Testnet."
         />
       }
       right={
         <div className="flex flex-col gap-xl">
           <div>
-            <button onClick={() => navigate('select-type')} className="text-label-sm text-text-secondary hover:text-text-primary transition-colors mb-xl block">← Volver</button>
-            <p className="text-video-title text-brand-primary font-semibold tracking-widest uppercase mb-xs" style={{ fontSize: '0.65rem' }}>Negocio</p>
-            <h1 className="text-title text-text-primary font-semibold">Crear cuenta</h1>
+            <button
+              onClick={() => navigate('select-type')}
+              className="text-label-sm text-text-secondary hover:text-text-primary transition-colors mb-xl block"
+            >
+              ← Volver
+            </button>
+            <p className="text-video-title text-brand-primary font-semibold tracking-widest uppercase mb-xs" style={{ fontSize: '0.65rem' }}>
+              Negocio
+            </p>
+            <h1 className="text-title text-text-primary font-semibold">Crear cuenta empresarial</h1>
+            <p className="text-xs text-text-secondary mt-1">Completa los datos de tu empresa para emitir campañas auditadas on-chain.</p>
           </div>
-          <div className={FORM}>
-            <InputField label="Nombre del negocio" value={form.name} placeholder="Ej. Eventos XYZ" onChange={v => setForm(f => ({ ...f, name: v }))} />
-            <div className="flex gap-lg">
-              <div className="flex-1">
-                <InputField label="Correo" value={form.email} placeholder="negocio@email.com" onChange={v => setForm(f => ({ ...f, email: v }))} />
-              </div>
-              <div className="flex-1">
-                <InputField label="Teléfono" value={form.phone} placeholder="+51 999..." onChange={v => setForm(f => ({ ...f, phone: v }))} />
-              </div>
+
+          <form onSubmit={handleSubmit} className={FORM} noValidate>
+            <ValidatedInput
+              label="Nombre del negocio o marca"
+              value={form.name}
+              placeholder="Ej. Lima Indie Fest"
+              required
+              error={errors.name}
+              touched={touched.name || submitAttempted}
+              onBlur={() => handleBlur('name')}
+              onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+              <ValidatedInput
+                label="Correo corporativo"
+                type="email"
+                value={form.email}
+                placeholder="contacto@empresa.pe"
+                required
+                error={errors.email}
+                touched={touched.email || submitAttempted}
+                onBlur={() => handleBlur('email')}
+                onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+              />
+              <ValidatedInput
+                label="Teléfono / WhatsApp"
+                value={form.phone}
+                placeholder="+51 987 654 321"
+                error={errors.phone}
+                touched={touched.phone || submitAttempted}
+                onBlur={() => handleBlur('phone')}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+              />
             </div>
-            <InputField label="Contraseña" value={form.password} placeholder="••••••••" onChange={v => setForm(f => ({ ...f, password: v }))} />
-            <SelectField
-              label="Categoría"
+
+            <ValidatedInput
+              label="Contraseña de acceso"
+              type="password"
+              value={form.password}
+              placeholder="Mínimo 6 caracteres"
+              required
+              helperText="Protege el acceso a tus campañas y fondos en custodia."
+              error={errors.password}
+              touched={touched.password || submitAttempted}
+              onBlur={() => handleBlur('password')}
+              onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+            />
+
+            <ValidatedSelect
+              label="Categoría del negocio"
               options={CATEGORY_OPTIONS}
               value={form.category}
-              onChange={v => setForm(f => ({ ...f, category: v }))}
-              placeholder="Selecciona categoría"
+              required
+              placeholder="Selecciona la categoría"
+              error={errors.category}
+              touched={touched.category || submitAttempted}
+              onBlur={() => handleBlur('category')}
+              onChange={(v) => setForm((f) => ({ ...f, category: v }))}
             />
-            <TextareaField
-              label="Descripción"
+
+            <ValidatedTextarea
+              label="Descripción de la empresa (opcional)"
               value={form.description}
-              placeholder="Describe tu negocio..."
+              placeholder="Cuéntanos a qué se dedica tu marca o evento..."
               rows={2}
-              onChange={v => setForm(f => ({ ...f, description: v }))}
+              onChange={(v) => setForm((f) => ({ ...f, description: v }))}
             />
-            <WalletConnectBox
-              wallet={wallet}
-              onWalletChange={setWallet}
-              helperText="Solo se recibe tu dirección pública para gestionar la custodia en Stellar."
-            />
-          </div>
-          <Button variant="primary" onClick={() => { setUserType('business'); navigate('account-created') }}>
-            Crear cuenta de negocio
-          </Button>
+
+            <div className="pt-2 border-t border-border-primary">
+              <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block mb-2">
+                Wallet Stellar de la Empresa (Opcional)
+              </label>
+              <WalletConnectBox
+                wallet={wallet}
+                onWalletChange={setWallet}
+                helperText="Solo se utiliza tu dirección pública (G...) para liquidaciones on-chain en Stellar Testnet."
+              />
+              {submitAttempted && errors.wallet && (
+                <p className="text-xs text-error font-medium mt-1.5 flex items-center gap-1">
+                  <AlertCircle size={13} /> {errors.wallet}
+                </p>
+              )}
+            </div>
+
+            {submitAttempted && hasErrors && (
+              <div className="p-3 rounded-xl bg-error/10 border border-error/20 flex items-center gap-2 text-xs text-error font-medium">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>Por favor corrige los campos marcados en rojo antes de continuar.</span>
+              </div>
+            )}
+
+            <Button
+              variant="primary"
+              onClick={handleSubmit}
+              iconEnd={<ArrowRight size={16} />}
+            >
+              Crear cuenta de negocio
+            </Button>
+          </form>
+
           <p className="text-label-sm text-text-secondary text-center">
             ¿Ya tienes cuenta?{' '}
-            <button onClick={() => navigate('login')} className="text-brand-primary hover:underline">Iniciar sesión</button>
+            <button onClick={() => navigate('login', { userType: 'business' })} className="text-brand-primary hover:underline font-medium">
+              Iniciar sesión
+            </button>
           </p>
         </div>
       }
@@ -711,8 +845,50 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
 // ─── Register Promoter ────────────────────────────────────────────────────────
 
 export function RegisterPromoterPage({ navigate, setUserType }: NavProps) {
+  const { setCurrentUser } = useApp()
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' })
   const [wallet, setWallet] = useState<string | null>(null)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
+
+  const errors = validatePromoterRegistration({
+    name: form.name,
+    email: form.email,
+    password: form.password,
+    phone: form.phone,
+    wallet,
+  })
+
+  function handleBlur(field: string) {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
+  function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    setSubmitAttempted(true)
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      phone: true,
+      wallet: true,
+    })
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
+    setCurrentUser({
+      type: 'promoter',
+      name: form.name.trim(),
+      email: form.email.trim(),
+      wallet: wallet || 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC',
+    })
+    setUserType('promoter')
+    navigate('account-created')
+  }
+
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <AuthSplit
@@ -720,33 +896,109 @@ export function RegisterPromoterPage({ navigate, setUserType }: NavProps) {
         <BrandPanel
           eyebrow="Registro · Promotor"
           headline="Gana USDC por cada conversión que generes."
-          sub="Únete a campañas activas, comparte tu código y recibe pagos automáticos en Stellar."
+          sub="Únete a campañas activas, comparte tu código y recibe pagos automáticos directamente a tu wallet en Stellar."
         />
       }
       right={
         <div className="flex flex-col gap-xl">
           <div>
-            <button onClick={() => navigate('select-type')} className="text-label-sm text-text-secondary hover:text-text-primary transition-colors mb-xl block">← Volver</button>
-            <p className="text-video-title text-brand-primary font-semibold tracking-widest uppercase mb-xs" style={{ fontSize: '0.65rem' }}>Promotor</p>
-            <h1 className="text-title text-text-primary font-semibold">Crear cuenta</h1>
+            <button
+              onClick={() => navigate('select-type')}
+              className="text-label-sm text-text-secondary hover:text-text-primary transition-colors mb-xl block"
+            >
+              ← Volver
+            </button>
+            <p className="text-video-title text-brand-primary font-semibold tracking-widest uppercase mb-xs" style={{ fontSize: '0.65rem' }}>
+              Promotor
+            </p>
+            <h1 className="text-title text-text-primary font-semibold">Crear cuenta de promotor</h1>
+            <p className="text-xs text-text-secondary mt-1">Regístrate para generar enlaces de referidos y cobrar en USDC.</p>
           </div>
-          <div className={FORM}>
-            <InputField label="Nombre completo" value={form.name} placeholder="Diego Huamani" onChange={v => setForm(f => ({ ...f, name: v }))} />
-            <InputField label="Correo electrónico" value={form.email} placeholder="promotor@email.com" onChange={v => setForm(f => ({ ...f, email: v }))} />
-            <InputField label="Contraseña" value={form.password} placeholder="••••••••" onChange={v => setForm(f => ({ ...f, password: v }))} />
-            <InputField label="Teléfono (opcional)" value={form.phone} placeholder="+51 999 999 999" onChange={v => setForm(f => ({ ...f, phone: v }))} />
-            <WalletConnectBox
-              wallet={wallet}
-              onWalletChange={setWallet}
-              helperText="Esta wallet recibirá tus recompensas en USDC mediante Stellar."
+
+          <form onSubmit={handleSubmit} className={FORM} noValidate>
+            <ValidatedInput
+              label="Nombre completo"
+              value={form.name}
+              placeholder="Diego Huamani"
+              required
+              error={errors.name}
+              touched={touched.name || submitAttempted}
+              onBlur={() => handleBlur('name')}
+              onChange={(v) => setForm((f) => ({ ...f, name: v }))}
             />
-          </div>
-          <Button variant="primary" onClick={() => { setUserType('promoter'); navigate('account-created') }}>
-            Crear cuenta de promotor
-          </Button>
+
+            <ValidatedInput
+              label="Correo electrónico"
+              type="email"
+              value={form.email}
+              placeholder="diego.huamani@promotor.pe"
+              required
+              error={errors.email}
+              touched={touched.email || submitAttempted}
+              onBlur={() => handleBlur('email')}
+              onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+              <ValidatedInput
+                label="Contraseña"
+                type="password"
+                value={form.password}
+                placeholder="Mínimo 6 caracteres"
+                required
+                error={errors.password}
+                touched={touched.password || submitAttempted}
+                onBlur={() => handleBlur('password')}
+                onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+              />
+              <ValidatedInput
+                label="Teléfono / WhatsApp"
+                value={form.phone}
+                placeholder="+51 999 888 777"
+                error={errors.phone}
+                touched={touched.phone || submitAttempted}
+                onBlur={() => handleBlur('phone')}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+              />
+            </div>
+
+            <div className="pt-2 border-t border-border-primary">
+              <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block mb-2">
+                Wallet para recibir USDC (Stellar Testnet)
+              </label>
+              <WalletConnectBox
+                wallet={wallet}
+                onWalletChange={setWallet}
+                helperText="Tus ganancias por conversiones se liquidarán directamente a esta dirección pública."
+              />
+              {submitAttempted && errors.wallet && (
+                <p className="text-xs text-error font-medium mt-1.5 flex items-center gap-1">
+                  <AlertCircle size={13} /> {errors.wallet}
+                </p>
+              )}
+            </div>
+
+            {submitAttempted && hasErrors && (
+              <div className="p-3 rounded-xl bg-error/10 border border-error/20 flex items-center gap-2 text-xs text-error font-medium">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>Verifica los datos requeridos antes de registrarte.</span>
+              </div>
+            )}
+
+            <Button
+              variant="primary"
+              onClick={handleSubmit}
+              iconEnd={<ArrowRight size={16} />}
+            >
+              Crear cuenta de promotor
+            </Button>
+          </form>
+
           <p className="text-label-sm text-text-secondary text-center">
             ¿Ya tienes cuenta?{' '}
-            <button onClick={() => navigate('login', { userType: 'promoter' })} className="text-brand-primary hover:underline">Iniciar sesión</button>
+            <button onClick={() => navigate('login', { userType: 'promoter' })} className="text-brand-primary hover:underline font-medium">
+              Iniciar sesión
+            </button>
           </p>
         </div>
       }
@@ -772,18 +1024,18 @@ export function AccountCreatedPage({ navigate, userType }: NavProps) {
         <div className="flex flex-col items-center gap-xl text-center">
           {/* Confirmation mark */}
           <div className="relative">
-            <div className="w-20 h-20 rounded-corner-full bg-brand-tertiary flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-brand-primary flex items-center justify-center">
-                <CheckCircle size={24} className="text-on-brand" />
+            <div className="w-20 h-20 rounded-corner-full bg-[#00B686]/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-[#00B686] flex items-center justify-center shadow-lg shadow-[#00B686]/30">
+                <CheckCircle size={24} className="text-white" />
               </div>
             </div>
           </div>
           <div>
-            <h1 className="text-title text-text-primary font-semibold">¡Todo listo!</h1>
-            <p className="text-label-sm text-text-secondary mt-xs">
+            <h1 className="text-title text-text-primary font-semibold">¡Cuenta creada con éxito!</h1>
+            <p className="text-label-sm text-text-secondary mt-xs max-w-sm">
               {userType === 'business'
-                ? 'Tu cuenta empresarial fue creada. Inicia sesión para crear tu primera campaña.'
-                : 'Tu cuenta de promotor fue creada. Inicia sesión para explorar campañas.'}
+                ? 'Tu cuenta empresarial está configurada y lista para emitir campañas con custodia Soroban.'
+                : 'Tu cuenta de promotor está activa. Explora campañas y genera tus enlaces de referidos.'}
             </p>
           </div>
           <Button
@@ -791,7 +1043,7 @@ export function AccountCreatedPage({ navigate, userType }: NavProps) {
             iconEnd={<ArrowRight size={16} />}
             onClick={() => navigate('login', { userType: userType ?? 'business' })}
           >
-            Iniciar sesión
+            Iniciar sesión ahora
           </Button>
         </div>
       }
@@ -803,12 +1055,48 @@ export function AccountCreatedPage({ navigate, userType }: NavProps) {
 
 export function LoginPage({ navigate, params, setUserType }: NavProps) {
   const initial = (params.userType as 'business' | 'promoter') ?? 'business'
+  const { setCurrentUser } = useApp()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [selected, setSelected] = useState<'business' | 'promoter'>(initial)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  function handleLogin() {
+  function handleQuickFill(role: 'business' | 'promoter') {
+    setSelected(role)
+    if (role === 'business') {
+      setEmail('contacto@eventosxyz.pe')
+      setPassword('stellar2026')
+    } else {
+      setEmail('diego.huamani@promotor.pe')
+      setPassword('stellar2026')
+    }
+    setErrorMsg(null)
+  }
+
+  function handleLogin(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    setTouched({ email: true, password: true })
+
+    if (!email || !isValidEmail(email)) {
+      setErrorMsg('Ingresa un correo electrónico válido.')
+      return
+    }
+    if (!password || password.length < 4) {
+      setErrorMsg('Ingresa tu contraseña (mínimo 4 caracteres).')
+      return
+    }
+
+    setErrorMsg(null)
     setUserType(selected)
+    setCurrentUser({
+      type: selected,
+      name: selected === 'business' ? 'Eventos XYZ' : 'Diego Huamani',
+      email: email.trim(),
+      wallet: selected === 'business'
+        ? 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y'
+        : 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC',
+    })
     navigate(selected === 'business' ? 'business-dashboard' : 'promoter-dashboard')
   }
 
@@ -818,7 +1106,7 @@ export function LoginPage({ navigate, params, setUserType }: NavProps) {
         <BrandPanel
           eyebrow="Bienvenido"
           headline="Resultados reales. Pagos automáticos."
-          sub="Accede a tu cuenta para gestionar campañas o ver tus ganancias."
+          sub="Accede a tu cuenta para gestionar campañas o auditar tus ganancias en USDC."
         />
       }
       right={
@@ -831,37 +1119,96 @@ export function LoginPage({ navigate, params, setUserType }: NavProps) {
               ← Inicio
             </button>
             <h1 className="text-title text-text-primary font-semibold">Iniciar sesión</h1>
-            <p className="text-label-sm text-text-secondary mt-xs">Accede a tu cuenta</p>
+            <p className="text-label-sm text-text-secondary mt-xs">Accede al panel descentralizado de LocalLoop</p>
           </div>
 
-          <div className={FORM}>
+          <form onSubmit={handleLogin} className={FORM} noValidate>
             {/* Role switcher */}
-            <div className="flex border border-border-primary rounded-corner-md overflow-hidden">
-              {(['business', 'promoter'] as const).map(t => (
+            <div className="flex border border-border-primary rounded-xl overflow-hidden p-1 bg-bg-faint">
+              {(['business', 'promoter'] as const).map((t) => (
                 <button
                   key={t}
+                  type="button"
                   onClick={() => setSelected(t)}
-                  className={`flex-1 py-2.5 px-md text-label-sm font-medium transition-colors ${
+                  className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg transition-all ${
                     selected === t
-                      ? 'bg-surface-bg text-brand-primary border-r border-border-primary last:border-r-0'
-                      : 'text-text-secondary hover:text-text-primary bg-bg-faint'
+                      ? 'bg-surface-bg text-brand-primary shadow-xs border border-border-primary'
+                      : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  {t === 'business' ? 'Negocio' : 'Promotor'}
+                  {t === 'business' ? '🏢 Soy un Negocio' : '🚀 Soy un Promotor'}
                 </button>
               ))}
             </div>
-            <InputField label="Correo electrónico" value={email} placeholder="correo@email.com" onChange={setEmail} />
-            <InputField label="Contraseña" value={password} placeholder="••••••••" onChange={setPassword} />
-          </div>
 
-          <Button variant="primary" onClick={handleLogin}>
-            Ingresar como {selected === 'business' ? 'negocio' : 'promotor'}
-          </Button>
+            <ValidatedInput
+              label="Correo electrónico"
+              type="email"
+              value={email}
+              placeholder={selected === 'business' ? 'contacto@empresa.pe' : 'promotor@email.com'}
+              required
+              touched={touched.email}
+              error={touched.email && (!email || !isValidEmail(email)) ? 'Ingresa un correo electrónico válido' : null}
+              onBlur={() => setTouched((p) => ({ ...p, email: true }))}
+              onChange={(v) => {
+                setEmail(v)
+                setErrorMsg(null)
+              }}
+            />
+
+            <ValidatedInput
+              label="Contraseña"
+              type="password"
+              value={password}
+              placeholder="••••••••"
+              required
+              touched={touched.password}
+              error={touched.password && (!password || password.length < 4) ? 'Contraseña requerida' : null}
+              onBlur={() => setTouched((p) => ({ ...p, password: true }))}
+              onChange={(v) => {
+                setPassword(v)
+                setErrorMsg(null)
+              }}
+            />
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-error/10 border border-error/20 flex items-center gap-2 text-xs text-error font-medium">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Quick-fill for Demo / Jury convenience */}
+            <div className="p-3 rounded-xl bg-bg-faint border border-border-primary flex flex-col gap-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-secondary font-semibold">
+                Acceso Rápido Demo (Jurado / Testing):
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('business')}
+                  className="flex-1 py-1.5 px-2 text-[11px] font-medium rounded-lg bg-surface-bg border border-border-primary hover:border-brand-primary text-text-primary transition-all text-center"
+                >
+                  🏢 Demo Negocio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('promoter')}
+                  className="flex-1 py-1.5 px-2 text-[11px] font-medium rounded-lg bg-surface-bg border border-border-primary hover:border-brand-primary text-text-primary transition-all text-center"
+                >
+                  🚀 Demo Promotor
+                </button>
+              </div>
+            </div>
+
+            <Button variant="primary" onClick={handleLogin} iconEnd={<ArrowRight size={16} />}>
+              Ingresar como {selected === 'business' ? 'negocio' : 'promotor'}
+            </Button>
+          </form>
 
           <p className="text-label-sm text-text-secondary text-center">
             ¿No tienes cuenta?{' '}
-            <button onClick={() => navigate('select-type')} className="text-brand-primary hover:underline">
+            <button onClick={() => navigate('select-type')} className="text-brand-primary hover:underline font-medium">
               Crear cuenta
             </button>
           </p>
@@ -870,3 +1217,4 @@ export function LoginPage({ navigate, params, setUserType }: NavProps) {
     />
   )
 }
+
