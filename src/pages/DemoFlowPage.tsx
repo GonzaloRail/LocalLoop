@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button, Badge, AstraLogo, useTheme } from '@figma/astraui'
+import { Button, Badge, useTheme } from '@figma/astraui'
 import {
   Building2, User, Zap, ArrowDown, ArrowRight, Play, Pause, RotateCcw,
   CheckCircle, Wallet, Share2, QrCode, BarChart2, Landmark,
   Sun, Moon, ChevronRight, ChevronDown
 } from 'lucide-react'
 import { NavProps } from '../types'
+import { Logo } from '../components/Logo'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -296,8 +297,7 @@ export function DemoFlowPage({ navigate, setUserType }: NavProps) {
             onClick={() => navigate('landing')}
             className="flex items-center gap-md text-text-secondary hover:text-text-primary transition-colors"
           >
-            <AstraLogo size={22} />
-            <span className="text-label font-semibold text-text-primary">LocalLoop</span>
+            <Logo size="sm" variant="auto" />
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-md">

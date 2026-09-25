@@ -18,6 +18,7 @@ import {
 import { Page, UserType } from '../types'
 import { ConversionSimulatorModal } from './ConversionSimulatorModal'
 import { useApp } from '../context/AppContext'
+import { Logo } from './Logo'
 
 interface AppShellProps {
   children: ReactNode
@@ -93,6 +94,16 @@ export default function AppShell({ children, currentPage, navigate, userType, se
           </>
         }
       >
+        <div className="flex items-center justify-center pt-2 pb-3">
+          <button
+            type="button"
+            onClick={() => navigate(userType === 'business' ? 'business-dashboard' : 'promoter-dashboard')}
+            title="LocalLoop Dashboard"
+            className="p-1 rounded-lg hover:bg-surface-hover transition-colors"
+          >
+            <Logo variant="icon" className="w-6 h-6 object-contain" />
+          </button>
+        </div>
         {navItems.map(({ page, icon: Icon }) => (
           <SidebarButton
             key={page}
@@ -105,22 +116,29 @@ export default function AppShell({ children, currentPage, navigate, userType, se
         {/* Separador y botón de simulador en la sidebar */}
         <div className="my-xs border-t border-border-primary/50" />
         <SidebarButton
-          icon={<Zap className="size-full text-brand-primary" strokeWidth={1.5} />}
+          icon={<Zap className="size-full text-[#00B686]" strokeWidth={1.5} />}
           onClick={() => setSimulatorOpen(true)}
         />
       </SidebarNavigation>
 
       <main className="flex-1 bg-brand-tertiary overflow-y-auto relative flex flex-col">
         {/* Barra superior de herramientas para la demo del hackathon */}
-        <header className="sticky top-0 z-40 bg-surface-bg/80 backdrop-blur-md border-b border-border-primary px-xl py-sm flex items-center justify-between text-xs">
+        <header className="sticky top-0 z-40 bg-surface-bg/85 backdrop-blur-md border-b border-border-primary px-xl py-sm flex items-center justify-between text-xs">
           <div className="flex items-center gap-sm">
-            <span className="font-semibold text-text-primary">LocalLoop</span>
+            <button
+              type="button"
+              onClick={() => navigate(userType === 'business' ? 'business-dashboard' : 'promoter-dashboard')}
+              className="flex items-center gap-1.5 hover:opacity-85 transition-opacity"
+            >
+              <Logo size="xs" variant="auto" />
+            </button>
             <span className="text-text-secondary">·</span>
-            <span className="text-brand-primary font-medium">
-              Rol activo: {userType === 'business' ? '🏢 Negocio' : '🚀 Promotor'}
+            <span className="text-[#00B686] font-medium">
+              Rol: {userType === 'business' ? '🏢 Negocio' : '🚀 Promotor'}
             </span>
             <span className="text-text-secondary">·</span>
-            <span className="text-xs px-xs py-0.5 rounded bg-bg-faint text-text-secondary border border-border-primary font-mono">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono text-[11px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Stellar Testnet
             </span>
           </div>
