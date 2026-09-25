@@ -54,8 +54,13 @@ export function ConversionSimulatorModal({
               <ShoppingBag size={18} />
             </div>
             <div>
-              <h3 className="text-label text-text-primary font-semibold">Simulador de Conversión</h3>
-              <p className="text-xs text-text-secondary">Simula la compra de un cliente con código/QR</p>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-label text-text-primary font-semibold">Emulador de Venta / Conversión</h3>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-bold border border-purple-500/20">
+                  DEMO JURY
+                </span>
+              </div>
+              <p className="text-xs text-text-secondary">Emula una venta para verificar la atribución y la custodia on-chain.</p>
             </div>
           </div>
           <button
@@ -67,7 +72,18 @@ export function ConversionSimulatorModal({
           </button>
         </div>
 
+        {/* Sandbox clarity banner */}
+        <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-800 dark:text-purple-300 flex flex-col gap-1">
+          <span className="font-semibold flex items-center gap-1">
+            <span>ℹ️</span> ¿Cómo funciona esto en producción real?
+          </span>
+          <p className="text-[11px] leading-relaxed opacity-90">
+            En un negocio físico o e-commerce real, esta acción la realiza el cliente al ingresar el cupón en caja o web. Esta herramienta permite al jurado evaluar la lógica del contrato Soroban sin necesitar una venta presencial real.
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-md">
+
           <div>
             <label className="text-xs text-text-secondary font-medium block mb-xs">Campaña destino</label>
             <select

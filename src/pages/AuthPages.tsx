@@ -756,14 +756,17 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
               />
               <ValidatedInput
                 label="Teléfono / WhatsApp"
+                type="tel"
+                maxLength={16}
                 value={form.phone}
                 placeholder="+51 987 654 321"
                 error={errors.phone}
                 touched={touched.phone || submitAttempted}
                 onBlur={() => handleBlur('phone')}
-                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v.replace(/[^\d\s+\-()]/g, '') }))}
               />
             </div>
+
 
             <ValidatedInput
               label="Contraseña de acceso"
@@ -953,14 +956,17 @@ export function RegisterPromoterPage({ navigate, setUserType }: NavProps) {
               />
               <ValidatedInput
                 label="Teléfono / WhatsApp"
+                type="tel"
+                maxLength={16}
                 value={form.phone}
                 placeholder="+51 999 888 777"
                 error={errors.phone}
                 touched={touched.phone || submitAttempted}
                 onBlur={() => handleBlur('phone')}
-                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                onChange={(v) => setForm((f) => ({ ...f, phone: v.replace(/[^\d\s+\-()]/g, '') }))}
               />
             </div>
+
 
             <div className="pt-2 border-t border-border-primary">
               <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block mb-2">

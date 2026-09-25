@@ -24,12 +24,17 @@ export function isValidStellarPublicKey(key: string): boolean {
 
 /**
  * Validates international phone format.
+ * Rejects any letters or illegal symbols. Requires between 8 and 15 actual digits.
  */
 export function isValidPhone(phone: string): boolean {
-  if (!phone || phone.trim() === '') return true // optional in most forms
-  const digitsOnly = phone.replace(/[\s\-\+\(\)]/g, '')
+  if (!phone || phone.trim() === '') return true // optional field
+  const trimmed = phone.trim()
+  // Reject if contains letters or characters other than digits, +, -, (, ), spaces
+  if (!/^[+]?[\d\s\-()]+$/.test(trimmed)) return false
+  const digitsOnly = trimmed.replace(/\D/g, '')
   return digitsOnly.length >= 8 && digitsOnly.length <= 15
 }
+
 
 /**
  * Validates business registration fields.

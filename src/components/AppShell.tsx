@@ -237,15 +237,18 @@ export default function AppShell({ children, currentPage, navigate, userType, se
               <ExternalLink size={11} className="opacity-70" />
             </a>
 
-            {/* Quick conversion simulation button */}
+            {/* Quick conversion simulation button for Jury & Testing */}
             <button
               type="button"
               onClick={() => setSimulatorOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1 bg-[#00B686] hover:bg-[#009E74] text-white rounded-lg font-medium shadow-xs transition-colors"
+              title="Herramienta de prueba para el jurado: emula la compra de un cliente"
+              className="flex items-center gap-1.5 px-3 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
-              <Zap size={13} />
-              <span className="hidden sm:inline">Simular venta</span>
+              <span>🧪</span>
+              <span className="hidden sm:inline">Emular Compra</span>
+              <span className="text-[10px] px-1 py-0.2 rounded bg-purple-500/20 font-mono">Demo</span>
             </button>
+
 
             {/* Role Switcher compact */}
             <button
