@@ -5,7 +5,8 @@ import {
 import {
   ArrowRight, Copy, Share2, Download, ExternalLink, CheckCircle,
   TrendingUp, Zap, ChevronRight, Wallet, Calendar,
-  Link2, BarChart2, Clock, Star, Pencil, Users
+  Link2, BarChart2, Clock, Star, Pencil, Users,
+  ShieldCheck, Sparkles, Check, QrCode, Coins, ArrowUpRight
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import AppShell from '../components/AppShell'
@@ -17,41 +18,101 @@ const CARD = 'bg-surface-bg border border-border-primary rounded-corner-lg p-xl'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-function StatTile({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: boolean }) {
+function StatTile({
+  label,
+  value,
+  sub,
+  accent,
+  icon: Icon,
+  trend,
+}: {
+  label: string
+  value: string | number
+  sub?: string
+  accent?: boolean
+  icon?: React.ComponentType<{ size?: number; className?: string }>
+  trend?: string
+}) {
   return (
-    <div className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-2">
-      <p className="text-text-secondary uppercase" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>{label}</p>
-      <p className={`text-title font-semibold leading-none ${accent ? 'text-brand-primary' : 'text-text-primary'}`}>{value}</p>
-      {sub && <p className="text-video-title text-text-secondary mt-xs">{sub}</p>}
+    <div className="bg-surface-bg border border-border-primary hover:border-[#00B686]/40 rounded-xl p-5 flex flex-col justify-between gap-3 shadow-xs transition-all">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">{label}</span>
+        {Icon && (
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            accent ? 'bg-[#00B686]/10 text-[#00B686]' : 'bg-surface-hover text-text-secondary'
+          }`}>
+            <Icon size={16} />
+          </div>
+        )}
+      </div>
+      <div>
+        <p className={`text-2xl sm:text-3xl font-bold tracking-tight leading-none ${accent ? 'text-[#00B686]' : 'text-text-primary'}`}>
+          {value}
+        </p>
+        {(sub || trend) && (
+          <div className="flex items-center gap-2 mt-2">
+            {trend && (
+              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                {trend}
+              </span>
+            )}
+            {sub && <span className="text-xs text-text-secondary">{sub}</span>}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { variant: 'success' | 'warning' | 'default' | 'secondary' | 'danger'; label: string }> = {
-    active: { variant: 'success', label: 'Activa' },
-    closing: { variant: 'warning', label: 'En cierre' },
-    liquidated: { variant: 'default', label: 'Liquidada' },
-    pending: { variant: 'warning', label: 'Pendiente' },
-    confirmed: { variant: 'success', label: 'Confirmada' },
-    paid: { variant: 'success', label: 'Pagado' },
+  const map: Record<string, { label: string; className: string; pulse?: boolean }> = {
+    active: {
+      label: 'Activa',
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      pulse: true,
+    },
+    closing: {
+      label: 'En cierre',
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25',
+    },
+    liquidated: {
+      label: 'Liquidada',
+      className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    },
+    pending: {
+      label: 'Pendiente',
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+    },
+    confirmed: {
+      label: 'Confirmada',
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    },
+    paid: {
+      label: 'Pagado on-chain',
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    },
   }
-  const cfg = map[status] ?? { variant: 'secondary', label: status }
-  return <Badge label={cfg.label} variant={cfg.variant} />
+  const cfg = map[status] ?? { label: status, className: 'bg-bg-faint text-text-secondary border-border-primary' }
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
+      {cfg.pulse && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+      {cfg.label}
+    </span>
+  )
 }
 
 function ProgressBar({ value, max, label }: { value: number; max: number; label?: string }) {
   const pct = Math.min(Math.round((value / max) * 100), 100)
   return (
-    <div className="flex flex-col gap-xs">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <div className="flex justify-between">
-          <span className="text-video-title text-text-secondary">{label}</span>
-          <span className="text-video-title text-brand-primary font-semibold">{pct}%</span>
+        <div className="flex justify-between text-xs">
+          <span className="text-text-secondary">{label}</span>
+          <span className="text-[#00B686] font-semibold">{pct}%</span>
         </div>
       )}
-      <div className="rounded-corner-full overflow-hidden" style={{ height: '3px', background: 'var(--bg-subtle)' }}>
-        <div className="h-full bg-brand-primary rounded-corner-full transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-1.5 rounded-full overflow-hidden bg-bg-subtle">
+        <div className="h-full bg-[#00B686] rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -62,7 +123,7 @@ function SectionHeading({ eyebrow, title, action }: { eyebrow?: string; title: s
     <div className="flex items-center justify-between py-2.5 border-b border-border-primary mb-xl">
       <div className="flex items-center gap-lg">
         {eyebrow && (
-          <span className="text-brand-primary font-semibold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
+          <span className="text-[#00B686] font-semibold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
             {eyebrow}
           </span>
         )}
@@ -95,71 +156,176 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
   const earned = promoterStats.totalEarnings
   const pending = promoterStats.pending
   const paid = promoterStats.paid
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedWallet, setCopiedWallet] = useState(false)
+
+  const defaultCode = participations[0]?.code || 'DIEGO82'
+  const walletAddr = currentUser.wallet || 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX'
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(`https://localloop.app/r/${code}`)
+    setCopiedCode(true)
+    setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  const copyWallet = () => {
+    navigator.clipboard.writeText(walletAddr)
+    setCopiedWallet(true)
+    setTimeout(() => setCopiedWallet(false), 2000)
+  }
 
   return (
     <AppShell currentPage="promoter-dashboard" navigate={navigate} userType={userType} setUserType={setUserType}>
-      <div className="p-2xl flex flex-col gap-2xl">
+      <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
 
-        {/* Page header */}
-        <div className="flex items-start justify-between pb-2xl border-b border-border-primary">
-          <div>
-            <span className="text-brand-primary font-semibold block mb-xs" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
-              01 — RESUMEN
-            </span>
-            <h1 className="text-title text-text-primary">Dashboard</h1>
-            <p className="text-label-sm text-text-secondary mt-xs">
-              Bienvenido, {currentUser.name || 'Diego Huamani'}
-            </p>
+        {/* Top Web3 Promoter Header */}
+        <div className="bg-surface-bg border border-border-primary rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xl border border-purple-500/20 shrink-0">
+              {currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : 'DH'}
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
+                  {currentUser.name || 'Diego Huamani'}
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#00B686]/10 text-[#00B686] border border-[#00B686]/20">
+                  <ShieldCheck size={13} />
+                  Promotor Verificado
+                </span>
+              </div>
+              <p className="text-xs text-text-secondary">
+                Monetiza compartiendo campañas. Recibe USDC directo en tu wallet Stellar.
+              </p>
+            </div>
           </div>
-          <Button variant="primary" iconStart={<ArrowRight size={16} />} onClick={() => navigate('explore-campaigns')}>
-            Explorar campañas
-          </Button>
+
+          {/* Stellar Wallet Bar */}
+          <div className="flex flex-wrap items-center gap-3 bg-bg-faint border border-border-primary rounded-xl p-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-semibold text-text-primary">Wallet Destino:</span>
+              <code className="font-mono text-text-secondary">{truncateAddress(walletAddr, 4, 4)}</code>
+              <button
+                onClick={copyWallet}
+                title="Copiar dirección pública"
+                className="p-1 hover:text-text-primary text-text-secondary rounded transition-colors"
+              >
+                {copiedWallet ? <Check size={12} className="text-[#00B686]" /> : <Copy size={12} />}
+              </button>
+              <a
+                href={getStellarExpertAccountUrl(walletAddr)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Ver en Stellar Expert"
+                className="p-1 hover:text-[#00B686] text-text-secondary rounded transition-colors"
+              >
+                <ExternalLink size={12} />
+              </a>
+            </div>
+            <span className="text-border-primary hidden sm:inline">|</span>
+            <div className="flex items-center gap-1.5 text-text-secondary">
+              <Sparkles size={14} className="text-[#00B686]" />
+              <span>Red: <strong className="text-text-primary">Stellar Testnet</strong></span>
+            </div>
+          </div>
         </div>
 
-        {/* Hero earnings card */}
-        <div className={`${CARD} flex items-center gap-2xl`}>
-          <div className="flex flex-col gap-xs flex-1">
-            <span className="text-text-secondary uppercase" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>Ganancias totales</span>
-            <p className="text-title text-brand-primary font-semibold leading-none">{earned} USDC</p>
-            <div className="flex items-center gap-xl mt-md pt-md border-t border-border-primary">
+        {/* Hero Earnings Card */}
+        <div className="bg-surface-bg border border-border-primary hover:border-[#00B686]/40 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
+          <div className="flex flex-col gap-2 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-[#00B686] uppercase">Billetera de Ganancias</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                Stellar USDC
+              </span>
+            </div>
+            <p className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight leading-none">
+              {earned} <span className="text-lg font-bold text-[#00B686]">USDC</span>
+            </p>
+            <p className="text-xs text-text-secondary">
+              Total acumulado generado por conversiones verificadas.
+            </p>
+
+            <div className="grid grid-cols-3 gap-4 pt-4 mt-2 border-t border-border-primary text-xs">
               <div>
-                <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>PAGADO</p>
-                <p className="text-label-sm text-text-primary font-semibold mt-xs">{paid} USDC</p>
+                <p className="text-text-secondary font-medium uppercase text-[10px] tracking-wider">Pagado a Wallet</p>
+                <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{paid} USDC</p>
               </div>
-              <div className="h-8 w-px bg-border-primary" />
               <div>
-                <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>PENDIENTE</p>
-                <p className="text-label-sm text-warning font-semibold mt-xs">{pending} USDC</p>
+                <p className="text-text-secondary font-medium uppercase text-[10px] tracking-wider">En Escrow Pendiente</p>
+                <p className="text-base font-bold text-amber-500 mt-0.5">{pending} USDC</p>
               </div>
-              <div className="h-8 w-px bg-border-primary" />
               <div>
-                <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CONVERSIONES</p>
-                <p className="text-label-sm text-text-primary font-semibold mt-xs">{promoterStats.totalConversions}</p>
+                <p className="text-text-secondary font-medium uppercase text-[10px] tracking-wider">Conversiones</p>
+                <p className="text-base font-bold text-text-primary mt-0.5">{promoterStats.totalConversions}</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-md shrink-0">
-            <Button variant="neutral" size="small" onClick={() => navigate('promoter-earnings')}>
-              Ver ganancias
+
+          <div className="flex flex-col gap-2.5 sm:w-48 shrink-0">
+            <Button variant="primary" size="small" onClick={() => navigate('promoter-earnings')}>
+              Ver historial de pagos
             </Button>
-            <Button variant="subtle" size="small" onClick={() => navigate('account-statement')}>
+            <Button variant="neutral" size="small" onClick={() => navigate('account-statement')}>
               Estado de cuenta
+            </Button>
+            <Button variant="subtle" size="small" iconEnd={<ArrowRight size={14} />} onClick={() => navigate('explore-campaigns')}>
+              Explorar más campañas
             </Button>
           </div>
         </div>
 
-        {/* Active campaigns */}
-        <div>
-          <SectionHeading
-            eyebrow="02 — ACTIVAS"
-            title="Mis campañas activas"
-            action={
-              <Button variant="subtle" size="small" iconEnd={<ArrowRight size={16} />} onClick={() => navigate('promoter-campaigns')}>
-                Ver todas ({participations.length})
-              </Button>
-            }
-          />
-          <div className="flex flex-col gap-lg">
+        {/* Universal Referral Code Share Strip */}
+        <div className="bg-gradient-to-r from-[#00B686]/10 via-[#00B686]/5 to-transparent border border-[#00B686]/25 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#00B686]/20 text-[#00B686] flex items-center justify-center shrink-0">
+              <QrCode size={20} />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <p className="text-xs text-text-secondary font-medium uppercase tracking-wider">
+                Tu Enlace de Referido Universal
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono font-bold text-text-primary bg-surface-bg px-2 py-0.5 rounded border border-border-primary">
+                  {defaultCode}
+                </code>
+                <span className="text-xs text-text-secondary">· Comparte y gana por cada cliente que compre</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => copyCode(defaultCode)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-bg hover:bg-surface-hover border border-border-primary text-xs font-semibold text-text-primary transition-colors"
+            >
+              {copiedCode ? <Check size={13} className="text-[#00B686]" /> : <Copy size={13} />}
+              <span>{copiedCode ? '¡Copiado!' : 'Copiar enlace'}</span>
+            </button>
+            <button
+              onClick={() => navigate('my-code', { campaignId: participations[0]?.campaignId || '1', code: defaultCode })}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00B686] hover:bg-[#009E74] text-white text-xs font-semibold shadow-xs transition-colors"
+            >
+              <QrCode size={13} />
+              <span>Ver QR & Social</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Active Campaigns Participations */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-2 border-b border-border-primary">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-[#00B686] uppercase">Campañas Activas</span>
+              <span className="text-text-secondary text-xs">({participations.length} inscritas)</span>
+            </div>
+            <Button variant="subtle" size="small" iconEnd={<ArrowRight size={14} />} onClick={() => navigate('promoter-campaigns')}>
+              Ver todas
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {participations.map(pc => {
               const campaign = campaigns.find(c => c.id === pc.campaignId)
               const campConversions = conversions.filter(c => c.campaignId === pc.campaignId && c.code === pc.code)
@@ -169,52 +335,114 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
               return (
                 <div
                   key={pc.id}
-                  className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-md cursor-pointer hover:bg-bg-faint transition-colors"
+                  className="bg-surface-bg border border-border-primary hover:border-[#00B686]/40 rounded-2xl p-5 shadow-xs transition-all flex flex-col justify-between gap-4 cursor-pointer group"
                   onClick={() => navigate('my-code', { campaignId: pc.campaignId, code: pc.code })}
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-label text-text-primary font-semibold">{campaign?.name || 'Campaña'}</p>
-                      <div className="flex items-center gap-md mt-xs">
-                        <Badge label={pc.code} variant="brand" />
-                        <span className="text-video-title text-text-secondary">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-bold text-text-primary group-hover:text-[#00B686] transition-colors">
+                        {campaign?.name || 'Campaña'}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs font-mono font-bold text-[#00B686] bg-[#00B686]/10 px-2 py-0.5 rounded border border-[#00B686]/20">
+                          {pc.code}
+                        </span>
+                        <span className="text-xs text-text-secondary">
                           {campaign?.reward ?? 2} USDC / conversión
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-md shrink-0">
-                      <StatusBadge status={campaign?.status || 'active'} />
-                      <ChevronRight size={14} className="text-text-secondary" />
-                    </div>
+                    <StatusBadge status={campaign?.status || 'active'} />
                   </div>
-                  <div className="flex gap-2xl pt-xs border-t border-border-primary">
+
+                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border-primary text-xs">
                     <div>
-                      <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CONVERSIONES</p>
-                      <p className="text-label-sm text-text-primary font-semibold mt-xs">{myConvCount}</p>
+                      <p className="text-text-secondary text-[10px] uppercase">Conversiones</p>
+                      <p className="font-bold text-text-primary mt-0.5">{myConvCount}</p>
                     </div>
                     <div>
-                      <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>GANADO</p>
-                      <p className="text-label-sm text-brand-primary font-semibold mt-xs">{myEarnings} USDC</p>
+                      <p className="text-text-secondary text-[10px] uppercase">Ganado</p>
+                      <p className="font-bold text-[#00B686] mt-0.5">{myEarnings} USDC</p>
                     </div>
                     {campaign && (
                       <div>
-                        <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CIERRE</p>
-                        <p className="text-label-sm text-text-primary mt-xs">{campaign.endDate}</p>
+                        <p className="text-text-secondary text-[10px] uppercase">Cierre</p>
+                        <p className="font-medium text-text-primary mt-0.5">{campaign.endDate}</p>
                       </div>
                     )}
                   </div>
+
                   {campaign && (
                     <ProgressBar value={campaign.conversions} max={campaign.maxConversions} label="Progreso global de campaña" />
                   )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-[#00B686] font-medium flex items-center gap-1 group-hover:underline">
+                      Ver mi QR y compartir <ChevronRight size={14} />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        copyCode(pc.code)
+                      }}
+                      className="text-xs px-2.5 py-1 rounded-md bg-surface-hover hover:bg-bg-subtle text-text-primary border border-border-primary transition-colors flex items-center gap-1"
+                    >
+                      <Copy size={12} />
+                      <span>Copiar link</span>
+                    </button>
+                  </div>
                 </div>
               )
             })}
           </div>
         </div>
 
+        {/* Recent Conversions Earned Stream */}
+        <div className="bg-surface-bg border border-border-primary rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-border-primary">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-[#00B686] uppercase">Tus Conversiones Recientes</span>
+              <span className="text-text-secondary text-xs">· Historial acreditado on-chain</span>
+            </div>
+            <button
+              onClick={() => navigate('account-statement')}
+              className="text-xs text-[#00B686] font-medium hover:underline flex items-center gap-1"
+            >
+              Ver estado de cuenta <ArrowUpRight size={13} />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-border-primary text-text-secondary uppercase text-[10px] tracking-wider">
+                  <th className="pb-2.5 font-semibold">Código</th>
+                  <th className="pb-2.5 font-semibold">Campaña / Operación</th>
+                  <th className="pb-2.5 font-semibold">Fecha</th>
+                  <th className="pb-2.5 font-semibold text-right">Recompensa</th>
+                  <th className="pb-2.5 font-semibold text-right">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-primary">
+                {conversions.slice(0, 5).map((conv) => (
+                  <tr key={conv.id} className="hover:bg-surface-hover/50 transition-colors">
+                    <td className="py-3 font-mono font-bold text-[#00B686]">{conv.code}</td>
+                    <td className="py-3 font-medium text-text-primary">{conv.operation}</td>
+                    <td className="py-3 text-text-secondary">{conv.date}</td>
+                    <td className="py-3 text-right font-semibold text-text-primary">{conv.reward} USDC</td>
+                    <td className="py-3 text-right">
+                      <StatusBadge status={conv.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </AppShell>
-
   )
 }
 
@@ -531,19 +759,35 @@ export function MyCode({ navigate, params, userType, setUserType }: NavProps) {
           >
             {copiedCode ? '¡Copiado!' : 'Copiar código'}
           </Button>
-          <Button variant="neutral" iconStart={<Share2 size={16} />}>
-            Compartir
-          </Button>
-          <Button variant="neutral" iconStart={<Download size={16} />}>
-            Descargar QR
+          <Button
+            variant="neutral"
+            iconStart={<Share2 size={16} />}
+            onClick={() => {
+              const text = `¡Usa mi código de referido ${code} en ${campaign.name}! ${refLink}`
+              if (navigator.share) {
+                navigator.share({ title: campaign.name, text, url: refLink }).catch(() => {})
+              } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank')
+              }
+            }}
+          >
+            Compartir WhatsApp
           </Button>
           <Button
             variant={copiedLink ? 'primary' : 'neutral'}
             iconStart={<Link2 size={16} />}
             onClick={() => doCopy('link')}
           >
-            {copiedLink ? '¡Copiado!' : 'Copiar enlace'}
+            {copiedLink ? '¡Enlace copiado!' : 'Copiar enlace'}
           </Button>
+          <button
+            type="button"
+            onClick={() => navigate('demo-flow')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-[#00B686]/10 hover:bg-[#00B686]/20 text-[#00B686] border border-[#00B686]/30 text-xs font-semibold transition-colors"
+          >
+            <Zap size={14} />
+            <span>Probar en Demo</span>
+          </button>
         </div>
 
         {/* Promotion tips */}
@@ -716,34 +960,36 @@ function PromoterCampaignCard({
 }) {
   return (
     <div
-      className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-md cursor-pointer hover:bg-bg-faint transition-colors"
+      className="bg-surface-bg border border-border-primary hover:border-[#00B686]/40 rounded-2xl p-5 shadow-xs transition-all flex flex-col justify-between gap-4 cursor-pointer group"
       onClick={() => navigate('promoter-campaign-detail', { promoterCampaignId: pc.id, campaignId: pc.campaignId })}
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-label text-text-primary font-semibold">{pc.campaignName}</p>
-          <div className="flex items-center gap-md mt-xs">
-            <Badge label={pc.code} variant="brand" />
-            <span className="text-video-title text-text-secondary">{pc.reward} USDC / conv.</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-bold text-text-primary group-hover:text-[#00B686] transition-colors">{pc.campaignName}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs font-mono font-bold text-[#00B686] bg-[#00B686]/10 px-2 py-0.5 rounded border border-[#00B686]/20">
+              {pc.code}
+            </span>
+            <span className="text-xs text-text-secondary">{pc.reward} USDC / conv.</span>
           </div>
         </div>
-        <div className="flex items-center gap-md shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <StatusBadge status={pc.status} />
-          <ChevronRight size={14} className="text-text-secondary" />
+          <ChevronRight size={14} className="text-text-secondary group-hover:text-text-primary transition-colors" />
         </div>
       </div>
-      <div className="flex gap-2xl pt-xs border-t border-border-primary">
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border-primary text-xs">
         <div>
-          <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CONVERSIONES</p>
-          <p className="text-label-sm text-text-primary font-semibold mt-xs">{pc.conversions}</p>
+          <p className="text-text-secondary text-[10px] uppercase">Conversiones</p>
+          <p className="font-bold text-text-primary mt-0.5">{pc.conversions}</p>
         </div>
         <div>
-          <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>GANANCIAS</p>
-          <p className="text-label-sm text-brand-primary font-semibold mt-xs">{pc.earnings} USDC</p>
+          <p className="text-text-secondary text-[10px] uppercase">Ganancias</p>
+          <p className="font-bold text-[#00B686] mt-0.5">{pc.earnings} USDC</p>
         </div>
         <div>
-          <p className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>CIERRE</p>
-          <p className="text-label-sm text-text-primary mt-xs">{pc.endDate}</p>
+          <p className="text-text-secondary text-[10px] uppercase">Cierre</p>
+          <p className="font-medium text-text-primary mt-0.5">{pc.endDate}</p>
         </div>
       </div>
       <ProgressBar value={pc.conversions} max={pc.maxConversions} />

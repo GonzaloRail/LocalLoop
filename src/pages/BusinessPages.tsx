@@ -6,39 +6,107 @@ import {
 import {
   Plus, ArrowRight, CheckCircle, AlertCircle, ExternalLink,
   Pencil, Calendar, Wallet, BarChart2, ChevronRight, Download,
-  Rocket, Users, RefreshCw, Check, X
+  Rocket, Users, RefreshCw, Check, X, ShieldCheck, Sparkles, Copy, Coins, ArrowUpRight, Zap
 } from 'lucide-react'
 import AppShell from '../components/AppShell'
 import { NavProps, Conversion, Campaign } from '../types'
 import { useApp } from '../context/AppContext'
-import { getStellarExpertTxUrl, truncateAddress, submitSettlementToStellarTestnet } from '../lib/stellar'
+import {
+  getStellarExpertTxUrl,
+  getStellarExpertAccountUrl,
+  truncateAddress,
+  submitSettlementToStellarTestnet
+} from '../lib/stellar'
 
 const CARD = 'bg-surface-bg border border-border-primary rounded-corner-lg p-xl'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function StatTile({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: boolean }) {
+function StatTile({
+  label,
+  value,
+  sub,
+  accent,
+  icon: Icon,
+  trend,
+}: {
+  label: string
+  value: string | number
+  sub?: string
+  accent?: boolean
+  icon?: React.ComponentType<{ size?: number; className?: string }>
+  trend?: string
+}) {
   return (
-    <div className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-2">
-      <p className="text-video-title text-text-secondary uppercase tracking-widest" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>{label}</p>
-      <p className={`text-title font-semibold leading-none ${accent ? 'text-brand-primary' : 'text-text-primary'}`}>{value}</p>
-      {sub && <p className="text-video-title text-text-secondary mt-xs">{sub}</p>}
+    <div className="bg-surface-bg border border-border-primary hover:border-[#00B686]/40 rounded-xl p-5 flex flex-col justify-between gap-3 shadow-xs transition-all">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">{label}</span>
+        {Icon && (
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            accent ? 'bg-[#00B686]/10 text-[#00B686]' : 'bg-surface-hover text-text-secondary'
+          }`}>
+            <Icon size={16} />
+          </div>
+        )}
+      </div>
+      <div>
+        <p className={`text-2xl sm:text-3xl font-bold tracking-tight leading-none ${accent ? 'text-[#00B686]' : 'text-text-primary'}`}>
+          {value}
+        </p>
+        {(sub || trend) && (
+          <div className="flex items-center gap-2 mt-2">
+            {trend && (
+              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                {trend}
+              </span>
+            )}
+            {sub && <span className="text-xs text-text-secondary">{sub}</span>}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { variant: 'success' | 'warning' | 'default' | 'secondary' | 'danger'; label: string }> = {
-    active: { variant: 'success', label: 'Activa' },
-    closing: { variant: 'warning', label: 'En cierre' },
-    liquidated: { variant: 'default', label: 'Liquidada' },
-    pending: { variant: 'warning', label: 'Pendiente' },
-    confirmed: { variant: 'success', label: 'Confirmada' },
-    rejected: { variant: 'danger', label: 'Rechazada' },
-    paid: { variant: 'success', label: 'Pagada' },
+  const map: Record<string, { label: string; className: string; pulse?: boolean }> = {
+    active: {
+      label: 'Activa',
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      pulse: true,
+    },
+    closing: {
+      label: 'En cierre',
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25',
+    },
+    liquidated: {
+      label: 'Liquidada',
+      className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    },
+    pending: {
+      label: 'Pendiente',
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+    },
+    confirmed: {
+      label: 'Confirmada',
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    },
+    rejected: {
+      label: 'Rechazada',
+      className: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+    },
+    paid: {
+      label: 'Pagada',
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    },
   }
-  const cfg = map[status] ?? { variant: 'secondary', label: status }
-  return <Badge label={cfg.label} variant={cfg.variant} />
+  const cfg = map[status] ?? { label: status, className: 'bg-bg-faint text-text-secondary border-border-primary' }
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
+      {cfg.pulse && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+      {cfg.label}
+    </span>
+  )
 }
 
 function SectionHeading({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: React.ReactNode }) {
@@ -46,7 +114,7 @@ function SectionHeading({ eyebrow, title, action }: { eyebrow?: string; title: s
     <div className="flex items-center justify-between py-2.5 border-b border-border-primary mb-xl">
       <div className="flex items-center gap-lg">
         {eyebrow && (
-          <span className="text-brand-primary font-semibold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
+          <span className="text-[#00B686] font-semibold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
             {eyebrow}
           </span>
         )}
@@ -60,8 +128,8 @@ function SectionHeading({ eyebrow, title, action }: { eyebrow?: string; title: s
 function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = Math.min(Math.round((value / max) * 100), 100)
   return (
-    <div className="h-px bg-bg-subtle rounded-corner-full overflow-hidden" style={{ height: '3px' }}>
-      <div className="h-full bg-brand-primary rounded-corner-full transition-all" style={{ width: `${pct}%` }} />
+    <div className="h-1.5 bg-bg-subtle rounded-full overflow-hidden">
+      <div className="h-full bg-[#00B686] rounded-full transition-all" style={{ width: `${pct}%` }} />
     </div>
   )
 }
@@ -69,99 +137,277 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
 // ─── Mockup 07 — Business Dashboard ──────────────────────────────────────────
 
 export function BusinessDashboard({ navigate, userType, setUserType }: NavProps) {
-  const { campaigns, businessStats, currentUser } = useApp()
+  const { campaigns, businessStats, currentUser, conversions } = useApp()
   const activeCampaigns = campaigns.filter(c => c.status === 'active')
   const closingCampaigns = campaigns.filter(c => c.status === 'closing')
+  const recentConversions = conversions.slice(0, 5)
+  const [copiedWallet, setCopiedWallet] = useState(false)
+
+  const walletAddr = currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y'
+
+  const copyWallet = () => {
+    navigator.clipboard.writeText(walletAddr)
+    setCopiedWallet(true)
+    setTimeout(() => setCopiedWallet(false), 2000)
+  }
 
   return (
     <AppShell currentPage="business-dashboard" navigate={navigate} userType={userType} setUserType={setUserType}>
-      <div className="p-2xl flex flex-col gap-2xl">
+      <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
 
-        {/* Page header */}
-        <div className="flex items-start justify-between pb-2xl border-b border-border-primary">
-          <div className="flex flex-col gap-xs">
-            <span className="text-brand-primary font-semibold" style={{ fontSize: '0.65rem', letterSpacing: '0.1em' }}>
-              01 — RESUMEN
-            </span>
-            <h1 className="text-title text-text-primary">Dashboard</h1>
-            <p className="text-label-sm text-text-secondary">
-              Bienvenido, {currentUser.name || 'Eventos XYZ'}
-            </p>
+        {/* Top Web3 Command Header */}
+        <div className="bg-surface-bg border border-border-primary rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#0B2545]/10 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xl border border-blue-500/20 shrink-0">
+              {currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : 'EX'}
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
+                  {currentUser.name || 'Eventos XYZ'}
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <ShieldCheck size={13} />
+                  Verificado on-chain
+                </span>
+              </div>
+              <p className="text-xs text-text-secondary">
+                Panel comercial y custodia de presupuesto publicitario en Stellar Testnet.
+              </p>
+            </div>
           </div>
-          <Button variant="primary" iconStart={<Plus size={16} />} onClick={() => navigate('create-campaign')}>
-            Crear campaña
-          </Button>
+
+          {/* Stellar Wallet Bar */}
+          <div className="flex flex-wrap items-center gap-3 bg-bg-faint border border-border-primary rounded-xl p-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-semibold text-text-primary">Freighter:</span>
+              <code className="font-mono text-text-secondary">{truncateAddress(walletAddr, 4, 4)}</code>
+              <button
+                onClick={copyWallet}
+                title="Copiar dirección pública"
+                className="p-1 hover:text-text-primary text-text-secondary rounded transition-colors"
+              >
+                {copiedWallet ? <Check size={12} className="text-[#00B686]" /> : <Copy size={12} />}
+              </button>
+              <a
+                href={getStellarExpertAccountUrl(walletAddr)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Ver en Stellar Expert"
+                className="p-1 hover:text-[#00B686] text-text-secondary rounded transition-colors"
+              >
+                <ExternalLink size={12} />
+              </a>
+            </div>
+            <span className="text-border-primary hidden sm:inline">|</span>
+            <div className="flex items-center gap-1.5 text-text-secondary">
+              <Coins size={14} className="text-[#00B686]" />
+              <span>Escrow Activo: <strong className="text-text-primary">1,250.00 USDC</strong></span>
+            </div>
+          </div>
         </div>
 
-        {/* Warning alert */}
+        {/* On-Chain Action Banner for closing campaigns */}
         {closingCampaigns.length > 0 && (
-          <div className="bg-surface-bg border border-border-primary rounded-corner-lg p-lg flex items-center gap-md">
-            <div className="w-7 h-7 rounded-corner-full bg-bg-faint flex items-center justify-center shrink-0">
-              <AlertCircle size={14} className="text-warning" />
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertCircle size={18} />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-sm font-semibold text-text-primary">
+                  Campaña completada lista para liquidar on-chain
+                </p>
+                <p className="text-xs text-text-secondary">
+                  <strong>{closingCampaigns[0].name}</strong> finalizó su ciclo y tiene conversiones aprobadas listas para distribución a promotores en Stellar Testnet.
+                </p>
+              </div>
             </div>
-            <p className="text-label-sm text-text-primary flex-1">
-              Tienes <strong>{closingCampaigns.length} campaña</strong> pendiente de cierre y revisión.
-            </p>
-            <Button variant="subtle" size="small" onClick={() => navigate('my-campaigns')}>
-              Revisar →
+            <Button
+              variant="primary"
+              size="small"
+              iconEnd={<ArrowRight size={14} />}
+              onClick={() => navigate('liquidation-summary', { campaignId: closingCampaigns[0].id })}
+            >
+              Liquidar ahora en Stellar
             </Button>
           </div>
         )}
 
-        {/* Stats grid */}
-        <div>
-          <SectionHeading eyebrow="02 — MÉTRICAS" title="Actividad general" />
-          <div className="grid grid-cols-3 gap-lg">
-            <StatTile label="Campañas activas" value={businessStats.activeCampaigns} accent />
-            <StatTile label="En cierre" value={businessStats.closingCampaigns} />
-            <StatTile label="Conversiones totales" value={businessStats.totalConversions} />
-            <StatTile label="Recompensas pendientes" value={`${businessStats.pendingRewards} USDC`} />
-            <StatTile label="Presupuesto utilizado" value={`${businessStats.usedBudget} USDC`} />
-            <StatTile label="Campañas finalizadas" value={businessStats.completedCampaigns} />
+        {/* KPI Stats Grid */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-[#00B686] uppercase">01 — Métricas Clave</span>
+              <span className="text-text-secondary text-xs">·</span>
+              <span className="text-xs text-text-secondary">Rendimiento en tiempo real</span>
+            </div>
+            <Button variant="primary" size="small" iconStart={<Plus size={14} />} onClick={() => navigate('create-campaign')}>
+              Nueva campaña
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatTile
+              label="Campañas Activas"
+              value={businessStats.activeCampaigns}
+              sub="Con fondos en escrow"
+              icon={Rocket}
+              accent
+              trend="En curso"
+            />
+            <StatTile
+              label="En Cierre / Liquidar"
+              value={businessStats.closingCampaigns}
+              sub="Listas para distribuir"
+              icon={AlertCircle}
+              trend={businessStats.closingCampaigns > 0 ? 'Firma requerida' : undefined}
+            />
+            <StatTile
+              label="Conversiones Verificadas"
+              value={businessStats.totalConversions}
+              sub="Ventas y leads trazados"
+              icon={CheckCircle}
+              trend="+18% este mes"
+            />
+            <StatTile
+              label="Presupuesto en Escrow"
+              value={`${businessStats.usedBudget} USDC`}
+              sub="Fondos asegurados en Soroban"
+              icon={ShieldCheck}
+            />
+            <StatTile
+              label="Recompensas a Liquidar"
+              value={`${businessStats.pendingRewards} USDC`}
+              sub="Distribución automática"
+              icon={Coins}
+              trend="Pendiente"
+            />
+            <StatTile
+              label="Campañas Finalizadas"
+              value={businessStats.completedCampaigns}
+              sub="Historial on-chain completo"
+              icon={BarChart2}
+            />
           </div>
         </div>
 
-        {/* Active campaigns */}
-        <div>
-          <SectionHeading
-            eyebrow="03 — ACTIVAS"
-            title="Campañas activas"
-            action={
-              <Button variant="subtle" size="small" iconEnd={<ArrowRight size={16} />} onClick={() => navigate('my-campaigns')}>
-                Ver todas
-              </Button>
-            }
-          />
-          <div className="flex flex-col gap-lg">
-            {activeCampaigns.map(c => (
-              <div
-                key={c.id}
-                className="bg-surface-bg border border-border-primary rounded-corner-lg p-xl flex flex-col gap-md cursor-pointer hover:bg-bg-faint transition-colors"
-                onClick={() => navigate('campaign-detail', { campaignId: c.id })}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-md">
-                    <div className="w-9 h-9 rounded-corner-md bg-brand-tertiary flex items-center justify-center shrink-0">
-                      <BarChart2 size={16} className="text-brand-primary" />
+        {/* Active Campaigns List */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-2 border-b border-border-primary">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-[#00B686] uppercase">02 — Campañas en Curso</span>
+              <span className="text-text-secondary text-xs">({activeCampaigns.length} activas)</span>
+            </div>
+            <Button variant="subtle" size="small" iconEnd={<ArrowRight size={14} />} onClick={() => navigate('my-campaigns')}>
+              Ver todas
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeCampaigns.map(c => {
+              const pct = Math.min(Math.round((c.conversions / c.maxConversions) * 100), 100)
+              return (
+                <div
+                  key={c.id}
+                  className="bg-surface-bg border border-border-primary hover:border-[#00B686]/40 rounded-2xl p-5 shadow-xs transition-all flex flex-col justify-between gap-4 cursor-pointer group"
+                  onClick={() => navigate('campaign-detail', { campaignId: c.id })}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-text-primary group-hover:text-[#00B686] transition-colors">
+                          {c.name}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-bg-faint text-text-secondary font-mono">
+                          {c.category}
+                        </span>
+                      </div>
+                      <p className="text-xs text-text-secondary">
+                        Recompensa: <strong className="text-[#00B686]">{c.reward} USDC</strong> por conversión
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-label text-text-primary font-semibold">{c.name}</p>
-                      <p className="text-video-title text-text-secondary mt-xs">{c.startDate} – {c.endDate}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-md shrink-0">
                     <StatusBadge status={c.status} />
-                    <ChevronRight size={14} className="text-text-secondary" />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 pt-3 border-t border-border-primary">
+                    <div className="flex justify-between text-xs text-text-secondary">
+                      <span>Progreso de conversiones</span>
+                      <span className="font-semibold text-text-primary">{c.conversions} / {c.maxConversions} ({pct}%)</span>
+                    </div>
+                    <div className="h-2 bg-bg-subtle rounded-full overflow-hidden">
+                      <div className="h-full bg-[#00B686] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[11px] text-text-secondary pt-1">
+                      <span>Presupuesto: <strong className="text-text-primary">{c.usedBudget}/{c.budget} USDC</strong></span>
+                      <span>Días restantes: <strong className="text-text-primary">{c.daysLeft} d</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs text-[#00B686] font-medium flex items-center gap-1 group-hover:underline">
+                      Ver detalle y promotores <ChevronRight size={14} />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate('campaign-conversions', { campaignId: c.id })
+                      }}
+                      className="text-xs px-2.5 py-1 rounded-md bg-surface-hover hover:bg-bg-subtle text-text-primary border border-border-primary transition-colors"
+                    >
+                      Conversiones
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2xl text-label-sm pt-xs border-t border-border-primary">
-                  <span className="text-text-secondary">Conversiones: <strong className="text-text-primary">{c.conversions}/{c.maxConversions}</strong></span>
-                  <span className="text-text-secondary">Presupuesto: <strong className="text-text-primary">{c.usedBudget}/{c.budget} USDC</strong></span>
-                  <span className="text-text-secondary">Días restantes: <strong className="text-text-primary">{c.daysLeft}</strong></span>
-                </div>
-                <ProgressBar value={c.conversions} max={c.maxConversions} />
-              </div>
-            ))}
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Recent Conversions Stream */}
+        <div className="bg-surface-bg border border-border-primary rounded-2xl p-6 shadow-xs flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-border-primary">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-[#00B686] uppercase">03 — Actividad Reciente</span>
+              <span className="text-text-secondary text-xs">· Conversiones de clientes en vivo</span>
+            </div>
+            <button
+              onClick={() => navigate('campaign-conversions', { campaignId: activeCampaigns[0]?.id || '1' })}
+              className="text-xs text-[#00B686] font-medium hover:underline flex items-center gap-1"
+            >
+              Auditar todas <ArrowUpRight size={13} />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-border-primary text-text-secondary uppercase text-[10px] tracking-wider">
+                  <th className="pb-2.5 font-semibold">Código Promotor</th>
+                  <th className="pb-2.5 font-semibold">Promotor</th>
+                  <th className="pb-2.5 font-semibold">Operación</th>
+                  <th className="pb-2.5 font-semibold">Fecha</th>
+                  <th className="pb-2.5 font-semibold text-right">Recompensa</th>
+                  <th className="pb-2.5 font-semibold text-right">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-primary">
+                {recentConversions.map((conv) => (
+                  <tr key={conv.id} className="hover:bg-surface-hover/50 transition-colors">
+                    <td className="py-3 font-mono font-bold text-[#00B686]">{conv.code}</td>
+                    <td className="py-3 font-medium text-text-primary">{conv.promoter}</td>
+                    <td className="py-3 text-text-secondary">{conv.operation}</td>
+                    <td className="py-3 text-text-secondary">{conv.date}</td>
+                    <td className="py-3 text-right font-semibold text-text-primary">{conv.reward} USDC</td>
+                    <td className="py-3 text-right">
+                      <StatusBadge status={conv.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -503,39 +749,41 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
             <div className="flex flex-col">
               {[
                 { label: 'Campaña', value: previewName },
-                { label: 'Presupuesto', value: `${previewBudget} USDC` },
-                { label: 'Wallet del negocio', value: 'G...8F3K' },
-                { label: 'Fondos requeridos', value: `${previewBudget} USDC` },
+                { label: 'Presupuesto a bloquear', value: `${previewBudget} USDC` },
+                { label: 'Wallet del negocio', value: truncateAddress(currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y') },
+                { label: 'Red de ejecución', value: 'Stellar Testnet' },
+                { label: 'Tarifa estimada', value: '0.00001 XLM' },
+                { label: 'Contrato de custodia', value: 'Soroban Escrow Protocol' },
               ].map(row => (
-                <div key={row.label} className="flex justify-between items-center py-md border-b border-border-primary last:border-0">
-                  <span className="text-text-secondary" style={{ fontSize: '0.65rem', letterSpacing: '0.08em' }}>{row.label.toUpperCase()}</span>
-                  <span className="text-label-sm text-text-primary font-semibold">{row.value}</span>
+                <div key={row.label} className="flex justify-between items-center py-2.5 border-b border-border-primary last:border-0 text-xs">
+                  <span className="text-text-secondary uppercase tracking-wider text-[10px]">{row.label}</span>
+                  <span className="text-text-primary font-semibold">{row.value}</span>
                 </div>
               ))}
             </div>
 
             {/* Stellar flow diagram */}
-            <div className="flex items-center justify-center gap-lg py-lg bg-bg-faint rounded-corner-md border border-border-primary">
+            <div className="flex items-center justify-center gap-lg py-lg bg-bg-faint rounded-xl border border-border-primary">
               {[
                 { icon: Wallet, label: 'Tu wallet' },
                 { icon: null, label: '→' },
-                { icon: null, label: 'Soroban', mono: true },
+                { icon: null, label: 'Soroban Escrow', mono: true },
                 { icon: null, label: '→' },
-                { icon: Rocket, label: 'Campaña' },
+                { icon: Rocket, label: 'Campaña Activa' },
               ].map((item, i) =>
                 item.icon ? (
                   <div key={i} className="flex flex-col items-center gap-xs">
-                    <div className="w-9 h-9 rounded-corner-full bg-brand-tertiary flex items-center justify-center">
-                      <item.icon size={15} className="text-brand-primary" />
+                    <div className="w-10 h-10 rounded-xl bg-[#00B686]/10 text-[#00B686] flex items-center justify-center">
+                      <item.icon size={16} />
                     </div>
-                    <span className="text-video-title text-text-secondary">{item.label}</span>
+                    <span className="text-[11px] text-text-secondary font-medium">{item.label}</span>
                   </div>
                 ) : item.mono ? (
                   <div key={i} className="flex flex-col items-center gap-xs">
-                    <div className="w-9 h-9 rounded-corner-full bg-brand-tertiary flex items-center justify-center">
-                      <span className="text-video-title text-brand-primary font-semibold">SB</span>
+                    <div className="w-10 h-10 rounded-xl bg-[#0B2545]/10 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs font-mono">
+                      ESCROW
                     </div>
-                    <span className="text-video-title text-text-secondary">{item.label}</span>
+                    <span className="text-[11px] text-text-secondary font-medium">{item.label}</span>
                   </div>
                 ) : (
                   <ArrowRight key={i} size={14} className="text-text-secondary mb-4" />

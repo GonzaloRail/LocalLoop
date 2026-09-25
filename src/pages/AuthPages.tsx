@@ -59,7 +59,7 @@ function BrandPanel({
   return (
     <>
       <div className="flex items-center justify-between">
-        <Logo size="sm" variant="auto" />
+        <Logo size="md" variant="auto" />
         <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Stellar Testnet
@@ -124,9 +124,9 @@ export function LandingPage({ navigate, setUserType }: NavProps) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity py-1"
           >
-            <Logo size="sm" variant="auto" />
+            <Logo size="md" variant="auto" />
           </div>
 
           {/* Quick anchor links */}

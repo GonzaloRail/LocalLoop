@@ -22,11 +22,11 @@ export function Logo({
   }
 
   const sizeClasses = {
-    xs: 'h-5',
-    sm: 'h-7',
-    md: 'h-9',
-    lg: 'h-12',
-    xl: 'h-16',
+    xs: 'h-6 sm:h-7',
+    sm: 'h-8 sm:h-9',
+    md: 'h-10 sm:h-11',
+    lg: 'h-14 sm:h-16',
+    xl: 'h-20 sm:h-24',
   }
 
   let src = '/logos/localloop-logo-color.png'

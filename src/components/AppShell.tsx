@@ -101,7 +101,7 @@ export default function AppShell({ children, currentPage, navigate, userType, se
             title="LocalLoop Dashboard"
             className="p-1 rounded-lg hover:bg-surface-hover transition-colors"
           >
-            <Logo variant="icon" className="w-6 h-6 object-contain" />
+            <Logo variant="icon" className="w-8 h-8 object-contain" />
           </button>
         </div>
         {navItems.map(({ page, icon: Icon }) => (
@@ -130,7 +130,7 @@ export default function AppShell({ children, currentPage, navigate, userType, se
               onClick={() => navigate(userType === 'business' ? 'business-dashboard' : 'promoter-dashboard')}
               className="flex items-center gap-1.5 hover:opacity-85 transition-opacity"
             >
-              <Logo size="xs" variant="auto" />
+              <Logo size="sm" variant="auto" />
             </button>
             <span className="text-text-secondary">·</span>
             <span className="text-[#00B686] font-medium">
