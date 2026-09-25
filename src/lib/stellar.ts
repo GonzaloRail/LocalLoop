@@ -1,4 +1,12 @@
-import { Horizon, Networks } from '@stellar/stellar-sdk'
+import {
+  Horizon,
+  Networks,
+  Keypair,
+  Operation,
+  TransactionBuilder,
+  Asset,
+  Memo,
+} from '@stellar/stellar-sdk'
 import freighter from '@stellar/freighter-api'
 
 export const HORIZON_TESTNET_URL = 'https://horizon-testnet.stellar.org'
@@ -176,4 +184,137 @@ export function getStellarExpertAccountUrl(publicKey: string): string {
  */
 export function getStellarExpertTxUrl(txHash: string): string {
   return `https://stellar.expert/explorer/testnet/tx/${txHash}`
+}
+
+export interface SettlementResult {
+  success: boolean
+  txHash: string
+  ledger?: number
+  explorerUrl: string
+  error?: string
+}
+
+/**
+ * Obtiene o inicializa la cuenta escrow de la plataforma en Testnet fondeada con Friendbot.
+ */
+export async function getOrCreateEscrowKeypair(): Promise<Keypair> {
+  const STORAGE_KEY = 'localloop_escrow_secret'
+  let secret: string | null = null
+  try {
+    secret = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
+  } catch {
+    // Ignore storage issues
+  }
+
+  if (secret) {
+    try {
+      const kp = Keypair.fromSecret(secret)
+      const acc = await horizonServer.loadAccount(kp.publicKey()).catch(() => null)
+      if (acc) return kp
+    } catch {
+      // Ignorar y regenerar
+    }
+  }
+
+  const newKp = Keypair.random()
+  const fundRes = await fundAccountWithFriendbot(newKp.publicKey())
+  if (!fundRes.success) {
+    throw new Error(`Error fondeando cuenta escrow: ${fundRes.message}`)
+  }
+
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, newKp.secret())
+    }
+  } catch {
+    // Ignore
+  }
+  return newKp
+}
+
+/**
+ * Emite una transacción FÍSICA Y REAL a la red Stellar Testnet (Horizon).
+ * Distribuye las recompensas o registra el cierre inmutable en el ledger.
+ */
+export async function submitSettlementToStellarTestnet({
+  campaignId,
+  totalAmountUsdc,
+  promoterAddresses,
+}: {
+  campaignId: string
+  totalAmountUsdc: number
+  promoterAddresses?: string[]
+}): Promise<SettlementResult> {
+  try {
+    const escrowKp = await getOrCreateEscrowKeypair()
+    const sourceAccount = await horizonServer.loadAccount(escrowKp.publicKey())
+
+    const txBuilder = new TransactionBuilder(sourceAccount, {
+      fee: '100',
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+
+    // Memo truncado a max 28 bytes
+    const safeMemo = `LL:${campaignId.slice(-6)}:${Math.round(totalAmountUsdc)}U`.slice(0, 28)
+    txBuilder.addMemo(Memo.text(safeMemo))
+    txBuilder.setTimeout(180)
+
+    // Si hay promotores con wallet válida, enviarles micro-pagos reales o crear su cuenta
+    if (promoterAddresses && promoterAddresses.length > 0) {
+      for (const dest of promoterAddresses.slice(0, 5)) {
+        if (dest && dest.startsWith('G') && dest.length === 56) {
+          try {
+            const destAcc = await horizonServer.loadAccount(dest).catch(() => null)
+            if (destAcc) {
+              txBuilder.addOperation(
+                Operation.payment({
+                  destination: dest,
+                  asset: Asset.native(),
+                  amount: '1.0000000',
+                })
+              )
+            } else {
+              txBuilder.addOperation(
+                Operation.createAccount({
+                  destination: dest,
+                  startingBalance: '2.5000000',
+                })
+              )
+            }
+          } catch {
+            // Continúa
+          }
+        }
+      }
+    }
+
+    // Registro inmutable de la liquidación en el ledger con manageData
+    const dataKey = `LL_${campaignId.slice(0, 8)}`
+    txBuilder.addOperation(
+      Operation.manageData({
+        name: dataKey,
+        value: `${Math.round(totalAmountUsdc)} USDC Settlement`,
+      })
+    )
+
+    const transaction = txBuilder.build()
+    transaction.sign(escrowKp)
+
+    const response = await horizonServer.submitTransaction(transaction)
+
+    return {
+      success: true,
+      txHash: response.hash,
+      ledger: response.ledger,
+      explorerUrl: getStellarExpertTxUrl(response.hash),
+    }
+  } catch (err) {
+    console.error('Error submitting transaction to Stellar:', err)
+    return {
+      success: false,
+      txHash: '',
+      explorerUrl: '',
+      error: err instanceof Error ? err.message : 'Error desconocido al enviar transacción a Stellar',
+    }
+  }
 }
