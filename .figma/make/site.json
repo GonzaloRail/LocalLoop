@@ -1,0 +1,11 @@
+{
+  "title": "LocalLoop",
+  "description": "Streamlines the MVP development process by transforming 31 mockups into a fully functional web app, enabling efficient product validation and user testing.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
