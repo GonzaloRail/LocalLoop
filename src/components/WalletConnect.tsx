@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { StellarWalletsKit, Networks } from '@creit.tech/stellar-wallets-kit'
-import { connectFreighterWallet } from '../lib/stellar'
+import { FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter'
+import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo'
+import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull'
 
 export interface WalletConnectProps {
   onWalletChange?: (state: { publicKey: string | null; isConnected: boolean }) => void
@@ -40,41 +42,32 @@ export function WalletConnect({ onWalletChange }: WalletConnectProps) {
   const handleConnect = useCallback(async () => {
     setIsConnecting(true)
     try {
-      // 1. Inicializar Stellar Wallets Kit en Testnet
+      // 1. Inicializar Stellar Wallets Kit en Testnet con módulos soportados
       try {
         StellarWalletsKit.init({
           network: Networks.TESTNET,
-          modules: [],
+          modules: [
+            new FreighterModule(),
+            new AlbedoModule(),
+            new xBullModule(),
+          ],
         })
       } catch {
         // Fallback seguro si ya estaba inicializado
       }
 
-      // 2. Intentar autenticación con el modal del kit o con Freighter
-      let addr: string | null = null
-      try {
-        const res = await StellarWalletsKit.authModal()
-        if (res && res.address) {
-          addr = res.address
-        }
-      } catch {
-        const freighterRes = await connectFreighterWallet()
-        if (freighterRes.address) {
-          addr = freighterRes.address
-        }
-      }
-
-      if (addr) {
-        setPublicKey(addr)
-        localStorage.setItem('stellar_connected_wallet', addr)
+      // 2. Abrir modal del kit para selección de wallet
+      const res = await StellarWalletsKit.authModal()
+      if (res && res.address) {
+        setPublicKey(res.address)
+        localStorage.setItem('stellar_connected_wallet', res.address)
       }
     } catch (err) {
-      console.error('Error al conectar wallet Stellar:', err)
+      console.warn('Conexión de wallet cancelada o no completada:', err)
     } finally {
       setIsConnecting(false)
     }
   }, [])
-
   const handleDisconnect = useCallback(async () => {
     try {
       await StellarWalletsKit.disconnect().catch(() => {})
