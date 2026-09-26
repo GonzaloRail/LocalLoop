@@ -1,3 +1,8 @@
+allowBuilds:
+  '@reown/appkit': true
+  bufferutil: true
+  secp256k1: true
+  utf-8-validate: true
 minimumReleaseAgeExclude:
   - '@supabase/auth-js@2.117.2'
   - '@supabase/functions-js@2.117.2'

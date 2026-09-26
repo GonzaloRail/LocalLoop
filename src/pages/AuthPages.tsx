@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { NavProps } from '../types'
 import { WalletConnectBox } from '../components/WalletConnectBox'
+import { WalletConnect } from '../components/WalletConnect'
 import { Logo } from '../components/Logo'
 import { useApp } from '../context/AppContext'
 import { ValidatedInput, ValidatedTextarea, ValidatedSelect } from '../components/FormValidation'
@@ -116,6 +117,7 @@ const LOOP_STEPS = [
 ]
 
 export function LandingPage({ navigate, setUserType }: NavProps) {
+  const { setCurrentUser } = useApp()
   const [copied, setCopied] = useState(false)
 
   const handleCopyTx = () => {
@@ -149,6 +151,11 @@ export function LandingPage({ navigate, setUserType }: NavProps) {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <WalletConnect
+              onWalletChange={({ publicKey }) => {
+                if (publicKey) setCurrentUser({ wallet: publicKey })
+              }}
+            />
             <button
               onClick={() => navigate('login')}
               className="text-sm text-text-secondary hover:text-text-primary transition-colors px-2 py-1 font-medium"
