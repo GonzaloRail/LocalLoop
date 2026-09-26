@@ -707,8 +707,8 @@ export function RegisterBusinessPage({ navigate, setUserType }: NavProps) {
       name: busName,
       businessName: busName,
       email: form.email.trim(),
-      wallet: wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
-      businessWallet: wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
+      wallet: wallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y',
+      businessWallet: wallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y',
     })
     setUserType('business')
     navigate('account-created')
@@ -1120,8 +1120,8 @@ export function LoginPage({ navigate, params, setUserType }: NavProps) {
       promoterName: selected === 'promoter' ? userRoleName : (currentUser.promoterName || 'Diego Huamani'),
       email: email.trim(),
       wallet: selected === 'business'
-        ? (currentUser.businessWallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y')
-        : (currentUser.promoterWallet || 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC'),
+        ? (currentUser.businessWallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y')
+        : (currentUser.promoterWallet || 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX'),
     })
     navigate(selected === 'business' ? 'business-dashboard' : 'promoter-dashboard')
   }

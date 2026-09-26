@@ -148,8 +148,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       wallet: null,
       businessName: 'Eventos XYZ',
       promoterName: 'Diego Huamani',
-      businessWallet: 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
-      promoterWallet: 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC',
+      businessWallet: 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y',
+      promoterWallet: 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX',
     }
   })
 
@@ -250,8 +250,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         : (prev.promoterName || 'Diego Huamani')
 
       const newWallet = t === 'business'
-        ? (prev.businessWallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y')
-        : (prev.promoterWallet || 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC')
+        ? (prev.businessWallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y')
+        : (prev.promoterWallet || 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX')
 
       return {
         ...prev,

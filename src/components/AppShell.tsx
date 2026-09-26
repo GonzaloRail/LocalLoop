@@ -21,9 +21,11 @@ import {
   Menu,
   X,
   Wallet,
+  Bot,
 } from 'lucide-react'
 import { Page, UserType } from '../types'
 import { ConversionSimulatorModal } from './ConversionSimulatorModal'
+import { McpAgentModal } from './McpAgentModal'
 import { useApp } from '../context/AppContext'
 import { Logo } from './Logo'
 import { truncateAddress, getStellarExpertAccountUrl } from '../lib/stellar'
@@ -54,12 +56,13 @@ export default function AppShell({ children, currentPage, navigate, userType, se
   const { currentUser } = useApp()
   const { theme, toggleTheme } = useTheme()
   const [simulatorOpen, setSimulatorOpen] = useState(false)
+  const [mcpModalOpen, setMcpModalOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = userType === 'promoter' ? PROMOTER_NAV : BUSINESS_NAV
   const profilePage: Page = userType === 'promoter' ? 'promoter-profile' : 'business-profile'
   const isBusiness = userType === 'business'
-  const walletAddr = currentUser.wallet || (isBusiness ? 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y' : 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX')
+  const walletAddr = currentUser.wallet || (isBusiness ? 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y' : 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX')
 
   function handleLogout() {
     setUserType?.(null)
@@ -143,6 +146,28 @@ export default function AppShell({ children, currentPage, navigate, userType, se
             >
               <Zap size={12} />
               <span>Simular conversión</span>
+            </button>
+          </div>
+
+          {/* MCP AI Agent Widget */}
+          <div className="mx-3 my-2 p-3 rounded-xl bg-gradient-to-br from-[#FDDA24]/15 via-[#FDDA24]/5 to-transparent border border-[#FDDA24]/30 flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-text-primary">
+              <Bot size={14} className="text-amber-500" />
+              <span>Agente IA (MCP)</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FDDA24]/20 text-text-primary font-mono font-bold border border-[#FDDA24]/40">
+                Stellar
+              </span>
+            </div>
+            <p className="text-[11px] text-text-secondary leading-snug">
+              Auditoría y operaciones on-chain ejecutadas vía Model Context Protocol.
+            </p>
+            <button
+              type="button"
+              onClick={() => setMcpModalOpen(true)}
+              className="w-full mt-1 py-1.5 px-2 bg-[#FDDA24] hover:bg-[#FDDA24]/90 text-[#0F0F0F] rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Bot size={13} />
+              <span>Abrir Consola MCP</span>
             </button>
           </div>
         </div>
@@ -237,6 +262,18 @@ export default function AppShell({ children, currentPage, navigate, userType, se
               <ExternalLink size={11} className="opacity-70" />
             </a>
 
+            {/* MCP AI Agent button for Video Demo & Jury */}
+            <button
+              type="button"
+              onClick={() => setMcpModalOpen(true)}
+              title="Herramienta MCP: Ejecuta herramientas nativas de Stellar con un Agente de IA"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#FDDA24]/15 hover:bg-[#FDDA24]/25 text-text-primary border border-[#FDDA24]/40 rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <Bot size={13} className="text-amber-500" />
+              <span className="hidden sm:inline">Agente IA</span>
+              <span className="text-[10px] px-1 py-0.2 rounded bg-[#FDDA24]/30 text-[#0F0F0F] dark:text-[#FDDA24] font-mono font-bold">MCP</span>
+            </button>
+
             {/* Quick conversion simulation button for Jury & Testing */}
             <button
               type="button"
@@ -300,6 +337,12 @@ export default function AppShell({ children, currentPage, navigate, userType, se
       <ConversionSimulatorModal
         isOpen={simulatorOpen}
         onClose={() => setSimulatorOpen(false)}
+      />
+
+      <McpAgentModal
+        isOpen={mcpModalOpen}
+        onClose={() => setMcpModalOpen(false)}
+        walletAddress={walletAddr}
       />
     </div>
   )

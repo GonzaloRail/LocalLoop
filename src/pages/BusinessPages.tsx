@@ -154,7 +154,7 @@ export function BusinessDashboard({ navigate, userType, setUserType }: NavProps)
   const recentConversions = conversions.slice(0, 5)
   const [copiedWallet, setCopiedWallet] = useState(false)
 
-  const walletAddr = currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y'
+  const walletAddr = currentUser.wallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y'
 
   const copyWallet = () => {
     navigator.clipboard.writeText(walletAddr)
@@ -442,7 +442,7 @@ export function BusinessProfile({ navigate, userType, setUserType }: NavProps) {
   const [faucetMsg, setFaucetMsg] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const activeWallet = currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y'
+  const activeWallet = currentUser.wallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y'
 
   async function handleFriendbotFund() {
     setFunding(true)
@@ -878,7 +878,7 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
       const newCamp = await createCampaign({
         name: finalName,
         business: currentUser.name || 'Negocio LocalLoop',
-        businessWallet: currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
+        businessWallet: currentUser.wallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y',
         category: info.category || 'entretenimiento',
         description: info.description || 'Campaña con liquidación on-chain por resultados.',
         startDate: info.startDate,
@@ -1389,7 +1389,7 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
                   <div className="flex justify-between items-center p-3 bg-surface-bg">
                     <span className="text-text-secondary">Wallet del Negocio Emisor</span>
                     <span className="font-mono text-text-primary">
-                      {truncateAddress(currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y')}
+                      {truncateAddress(currentUser.wallet || 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-surface-bg">
@@ -2222,7 +2222,7 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
       name: c.promoter,
       conversions: 0,
       reward: 0,
-      wallet: c.promoterWallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
+      wallet: c.promoterWallet || 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX',
     }
     existing.conversions += 1
     existing.reward += c.reward
@@ -2233,9 +2233,9 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
   const promotersList = promoterMap.size > 0
     ? Array.from(promoterMap.values())
     : [
-        { name: 'Diego Huamani', conversions: 35, reward: 70, wallet: 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC' },
-        { name: 'Ana Morales', conversions: 22, reward: 44, wallet: 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX' },
-        { name: 'Carlos Vega', conversions: 13, reward: 26, wallet: 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y' },
+        { name: 'Diego Huamani', conversions: 35, reward: 70, wallet: 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX' },
+        { name: 'Ana Morales', conversions: 22, reward: 44, wallet: 'GC6AXPGMZQZU5RBW5CKGCXL3B3FWFPTGPA2IQDXYKPCGFVTKJWBCKB3Y' },
+        { name: 'Carlos Vega', conversions: 13, reward: 26, wallet: 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX' },
       ]
 
   const totalConversions = promotersList.reduce((acc, p) => acc + p.conversions, 0)
