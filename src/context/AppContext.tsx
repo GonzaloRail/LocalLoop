@@ -9,7 +9,7 @@ import {
 } from '../types'
 import { supabase, DBCampaign, DBParticipation, DBConversion } from '../lib/supabase'
 import { getStellarExpertTxUrl } from '../lib/stellar'
-import { MOCK_CAMPAIGNS } from '../data'
+import { MOCK_CAMPAIGNS, MOCK_CONVERSIONS } from '../data'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mappers: BD (snake_case) → App (camelCase)

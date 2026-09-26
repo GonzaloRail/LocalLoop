@@ -1075,7 +1075,7 @@ export function AccountCreatedPage({ navigate, userType }: NavProps) {
 
 export function LoginPage({ navigate, params, setUserType }: NavProps) {
   const initial = (params.userType as 'business' | 'promoter') ?? 'business'
-  const { setCurrentUser } = useApp()
+  const { currentUser, setCurrentUser } = useApp()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [selected, setSelected] = useState<'business' | 'promoter'>(initial)

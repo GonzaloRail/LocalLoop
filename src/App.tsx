@@ -70,15 +70,11 @@ const ROUTE_STORAGE_KEY = 'localloop_current_page'
 
 function getInitialPage(): Page {
   if (typeof window !== 'undefined') {
-    if (window.location.hash) {
+    if (window.location.hash && window.location.hash !== '#/' && window.location.hash !== '#') {
       const hashPage = window.location.hash.replace(/^#\/?/, '').split('?')[0] as Page
       if (VALID_PAGES.has(hashPage)) {
         return hashPage
       }
-    }
-    const saved = localStorage.getItem(ROUTE_STORAGE_KEY) as Page
-    if (saved && VALID_PAGES.has(saved)) {
-      return saved
     }
   }
   return 'landing'
@@ -100,8 +96,13 @@ function AppContent() {
     setPage(p)
     setParams(newParams ?? {})
     if (typeof window !== 'undefined') {
-      window.location.hash = `#/${p}`
-      localStorage.setItem(ROUTE_STORAGE_KEY, p)
+      if (p === 'landing') {
+        window.history.replaceState(null, '', window.location.pathname)
+        localStorage.removeItem(ROUTE_STORAGE_KEY)
+      } else {
+        window.location.hash = `#/${p}`
+        localStorage.setItem(ROUTE_STORAGE_KEY, p)
+      }
       window.scrollTo(0, 0)
     }
   }
@@ -109,23 +110,22 @@ function AppContent() {
   // Soporte para botones Atrás/Adelante del navegador (hashchange)
   useEffect(() => {
     function handleHashChange() {
-      const hashPage = window.location.hash.replace(/^#\/?/, '').split('?')[0] as Page
+      const hash = window.location.hash
+      if (!hash || hash === '#' || hash === '#/' || hash === '#/landing') {
+        setPage('landing')
+        localStorage.removeItem(ROUTE_STORAGE_KEY)
+        return
+      }
+      const hashPage = hash.replace(/^#\/?/, '').split('?')[0] as Page
       if (VALID_PAGES.has(hashPage)) {
         setPage(hashPage)
         localStorage.setItem(ROUTE_STORAGE_KEY, hashPage)
       }
     }
 
-    if (window.location.hash && page !== 'landing') {
-      const currentHash = window.location.hash.replace(/^#\/?/, '').split('?')[0]
-      if (currentHash !== page) {
-        window.location.hash = `#/${page}`
-      }
-    }
-
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [page])
+  }, [])
 
   const navProps = { navigate, params, userType, setUserType }
 
