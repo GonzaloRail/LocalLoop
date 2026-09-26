@@ -9,6 +9,9 @@ interface BaseFieldProps {
   helperText?: string
   id?: string
   className?: string
+  showCharCount?: boolean
+  maxLength?: number
+  minLength?: number
 }
 
 interface ValidatedInputProps extends BaseFieldProps, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'prefix'> {
@@ -33,6 +36,9 @@ export function ValidatedInput({
   type = 'text',
   disabled,
   className = '',
+  showCharCount,
+  maxLength,
+  minLength,
   ...rest
 }: ValidatedInputProps) {
   const hasError = touched && !!error
@@ -45,11 +51,24 @@ export function ValidatedInput({
           {label}
           {required && <span className="text-error font-bold">*</span>}
         </label>
-        {isValid && (
-          <span className="flex items-center gap-1 text-[11px] text-success font-medium">
-            <CheckCircle2 size={12} /> Correcto
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {showCharCount && (
+            <span
+              className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                minLength && value.length < minLength
+                  ? 'bg-amber-500/10 text-amber-500 font-semibold'
+                  : 'bg-bg-faint text-text-secondary border border-border-primary'
+              }`}
+            >
+              {value.length}{maxLength ? ` / ${maxLength}` : ''}{minLength && value.length < minLength ? ` (mín. ${minLength})` : ''}
+            </span>
+          )}
+          {isValid && (
+            <span className="flex items-center gap-1 text-[11px] text-success font-medium">
+              <CheckCircle2 size={12} /> Correcto
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="relative flex items-center">
@@ -62,6 +81,7 @@ export function ValidatedInput({
           id={id}
           type={type}
           value={value}
+          maxLength={maxLength}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           placeholder={placeholder}
@@ -116,6 +136,9 @@ export function ValidatedTextarea({
   rows = 3,
   disabled,
   className = '',
+  showCharCount,
+  maxLength,
+  minLength,
   ...rest
 }: ValidatedTextareaProps) {
   const hasError = touched && !!error
@@ -128,17 +151,31 @@ export function ValidatedTextarea({
           {label}
           {required && <span className="text-error font-bold">*</span>}
         </label>
-        {isValid && (
-          <span className="flex items-center gap-1 text-[11px] text-success font-medium">
-            <CheckCircle2 size={12} /> Correcto
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {showCharCount && (
+            <span
+              className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                minLength && value.length < minLength
+                  ? 'bg-amber-500/10 text-amber-500 font-semibold'
+                  : 'bg-bg-faint text-text-secondary border border-border-primary'
+              }`}
+            >
+              {value.length}{maxLength ? ` / ${maxLength}` : ''}{minLength && value.length < minLength ? ` (mín. ${minLength})` : ''}
+            </span>
+          )}
+          {isValid && (
+            <span className="flex items-center gap-1 text-[11px] text-success font-medium">
+              <CheckCircle2 size={12} /> Correcto
+            </span>
+          )}
+        </div>
       </div>
 
       <textarea
         id={id}
         value={value}
         rows={rows}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder={placeholder}

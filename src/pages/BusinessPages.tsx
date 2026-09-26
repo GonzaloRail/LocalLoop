@@ -766,6 +766,8 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
   const [fundingStage, setFundingStage] = useState<'idle' | 'horizon' | 'signing' | 'confirming'>('idle')
   const [txHash, setTxHash] = useState<string | null>(null)
   const [fundingError, setFundingError] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; variant: 'success' | 'default' } | null>(null)
 
   // Validation calculations
@@ -865,31 +867,46 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
     }
   }
 
-  function publish() {
-    const finalName = info.name.trim() || 'Campaña Promocional'
-    const newCamp = createCampaign({
-      name: finalName,
-      business: currentUser.name || 'Negocio LocalLoop',
-      businessWallet: currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
-      category: info.category || 'entretenimiento',
-      description: info.description || 'Campaña con liquidación on-chain por resultados.',
-      startDate: info.startDate,
-      endDate: info.endDate,
-      budget: budgetNum,
-      reward: rewardNum,
-      maxConversions: calculatedMax || 100,
-      daysLeft: 30,
-      conversionAction: action.action,
-      validationMethod: action.validation,
-      conditions: action.conditions,
-    })
+  async function publish() {
+    setPublishing(true)
+    setPublishError(null)
 
-    if (txHash) {
-      fundCampaign(newCamp.id, txHash)
+    try {
+      const finalName = info.name.trim() || 'Campaña Promocional'
+      const newCamp = await createCampaign({
+        name: finalName,
+        business: currentUser.name || 'Negocio LocalLoop',
+        businessWallet: currentUser.wallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
+        category: info.category || 'entretenimiento',
+        description: info.description || 'Campaña con liquidación on-chain por resultados.',
+        startDate: info.startDate,
+        endDate: info.endDate,
+        budget: budgetNum,
+        reward: rewardNum,
+        maxConversions: calculatedMax || 100,
+        daysLeft: 30,
+        conversionAction: action.action,
+        validationMethod: action.validation,
+        conditions: action.conditions,
+      })
+
+      if (txHash && newCamp?.id) {
+        await fundCampaign(newCamp.id, txHash)
+      }
+
+      setToast({ msg: '🚀 ¡Campaña publicada con éxito en LocalLoop!', variant: 'success' })
+      setTimeout(() => navigate('my-campaigns'), 800)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al publicar'
+      console.error('Error al publicar campaña:', errorMsg)
+      setPublishError(errorMsg)
+      setToast({
+        msg: `Error: ${errorMsg}`,
+        variant: 'default',
+      })
+    } finally {
+      setPublishing(false)
     }
-
-    setToast({ msg: '🚀 ¡Campaña publicada con éxito en LocalLoop!', variant: 'success' })
-    setTimeout(() => navigate('my-campaigns'), 800)
   }
 
   const previewName = info.name || 'Nombre de tu campaña'
@@ -996,11 +1013,14 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
                   value={info.name}
                   placeholder="Ej. Descuento Estudiantil Primavera 2026"
                   required
+                  showCharCount
+                  minLength={4}
+                  maxLength={80}
                   error={errors1.name}
                   touched={touched1.name}
                   onBlur={() => setTouched1((p) => ({ ...p, name: true }))}
                   onChange={(v) => setInfo((i) => ({ ...i, name: v }))}
-                  helperText="Este título será visible en el catálogo de promotores."
+                  helperText="Este título será visible en el catálogo de promotores (4-80 caracteres)."
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1020,10 +1040,14 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
                     value={info.product}
                     placeholder="Ej. Entradas VIP / Menú 2x1"
                     required
+                    showCharCount
+                    minLength={3}
+                    maxLength={80}
                     error={errors1.product}
                     touched={touched1.product}
                     onBlur={() => setTouched1((p) => ({ ...p, product: true }))}
                     onChange={(v) => setInfo((i) => ({ ...i, product: v }))}
+                    helperText="Mínimo 3 caracteres."
                   />
                 </div>
 
@@ -1033,10 +1057,14 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
                   rows={3}
                   placeholder="Describe qué ofrece tu negocio y qué deben saber los promotores para recomendarlo..."
                   required
+                  showCharCount
+                  minLength={15}
+                  maxLength={500}
                   error={errors1.description}
                   touched={touched1.description}
                   onBlur={() => setTouched1((p) => ({ ...p, description: true }))}
                   onChange={(v) => setInfo((i) => ({ ...i, description: v }))}
+                  helperText="Describe el beneficio. Mínimo 15 caracteres para que los promotores tengan claridad."
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1423,14 +1451,29 @@ export function CreateCampaign({ navigate, userType, setUserType }: NavProps) {
                   </div>
                 ) : null}
 
+                {publishError && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-start gap-2">
+                    <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold">Aviso en la publicación:</span>
+                      <span>{publishError}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pt-4 border-t border-border-primary">
-                  <Button variant="neutral" disabled={funding} onClick={() => setStep(4)}>
+                  <Button variant="neutral" disabled={funding || publishing} onClick={() => setStep(4)}>
                     ← Volver al Resumen
                   </Button>
 
                   {funded ? (
-                    <Button variant="primary" iconStart={<Rocket size={16} />} onClick={publish}>
-                      Publicar y Activar Campaña
+                    <Button
+                      variant="primary"
+                      disabled={publishing}
+                      iconStart={publishing ? <RefreshCw size={16} className="animate-spin" /> : <Rocket size={16} />}
+                      onClick={publish}
+                    >
+                      {publishing ? 'Publicando campaña…' : 'Publicar y Activar Campaña'}
                     </Button>
                   ) : (
                     <Button
@@ -1721,6 +1764,17 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
   const { campaigns, conversions, participations, closeCampaign } = useApp()
   const campaign = campaigns.find(c => c.id === params.campaignId) ?? campaigns[0]
 
+  if (!campaign) {
+    return (
+      <AppShell currentPage="my-campaigns" navigate={navigate} userType={userType} setUserType={setUserType}>
+        <div className="p-8 text-center max-w-md mx-auto flex flex-col items-center gap-3">
+          <p className="text-sm font-semibold text-text-primary">Campaña no encontrada</p>
+          <Button variant="primary" onClick={() => navigate('my-campaigns')}>Volver a Mis Campañas</Button>
+        </div>
+      </AppShell>
+    )
+  }
+
   const campConversions = conversions.filter(c => c.campaignId === campaign.id)
   const campParts = participations.filter(p => p.campaignId === campaign.id)
 
@@ -1729,12 +1783,16 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
     return { name: p.promoterName, code: p.code, conversions: pConvs }
   })
 
-  // Fallback si no hay participaciones creadas aún
-  const displayPromoters = promoters.length > 0 ? promoters : [
-    { name: 'Diego Huamani', code: 'DIEGO82', conversions: campConversions.length || 18 },
-    { name: 'Ana Morales', code: 'ANA99', conversions: 12 },
-    { name: 'Carlos Vega', code: 'CARLOS21', conversions: 8 },
-  ]
+  // Solo mostrar datos de demostración si es la campaña demo inicial '1' y no hay promotores
+  const displayPromoters = promoters.length > 0
+    ? promoters
+    : campaign.id === '1'
+    ? [
+        { name: 'Diego Huamani', code: 'DIEGO82', conversions: campConversions.length || 18 },
+        { name: 'Ana Morales', code: 'ANA99', conversions: 12 },
+        { name: 'Carlos Vega', code: 'CARLOS21', conversions: 8 },
+      ]
+    : []
 
   const pct = Math.min(Math.round((campaign.conversions / campaign.maxConversions) * 100), 100)
 
@@ -1845,34 +1903,46 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
             <span className="text-xs text-text-secondary">{displayPromoters.length} inscritos</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border-primary text-text-secondary uppercase text-[10px] tracking-wider">
-                  <th className="pb-2 font-semibold">Promotor</th>
-                  <th className="pb-2 font-semibold">Código Asignado</th>
-                  <th className="pb-2 font-semibold text-right">Conversiones</th>
-                  <th className="pb-2 font-semibold text-right">Recompensa Estimada</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-primary">
-                {displayPromoters.map((p, i) => (
-                  <tr key={p.code} className="hover:bg-surface-hover/50 transition-colors">
-                    <td className="py-3 flex items-center gap-2.5 font-medium text-text-primary">
-                      <div className="w-7 h-7 rounded-full bg-[#00B686]/15 text-[#00B686] flex items-center justify-center font-bold text-xs">
-                        {p.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <span>{p.name}</span>
-                      {i === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold">Top 1</span>}
-                    </td>
-                    <td className="py-3 font-mono font-bold text-[#00B686]">{p.code}</td>
-                    <td className="py-3 text-right font-semibold text-text-primary">{p.conversions}</td>
-                    <td className="py-3 text-right font-bold text-[#00B686]">{p.conversions * campaign.reward} USDC</td>
+          {displayPromoters.length === 0 ? (
+            <div className="py-8 px-4 text-center flex flex-col items-center justify-center gap-2 bg-bg-faint/50 rounded-xl border border-dashed border-border-primary">
+              <div className="w-10 h-10 rounded-full bg-border-primary/40 flex items-center justify-center text-text-secondary">
+                <Users size={18} />
+              </div>
+              <p className="text-sm font-semibold text-text-primary">Aún no hay promotores inscritos</p>
+              <p className="text-xs text-text-secondary max-w-sm">
+                Cuando los promotores descubran y se unan a esta campaña desde el catálogo, sus códigos asignados y métricas de conversión aparecerán aquí.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border-primary text-text-secondary uppercase text-[10px] tracking-wider">
+                    <th className="pb-2 font-semibold">Promotor</th>
+                    <th className="pb-2 font-semibold">Código Asignado</th>
+                    <th className="pb-2 font-semibold text-right">Conversiones</th>
+                    <th className="pb-2 font-semibold text-right">Recompensa Estimada</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y border-border-primary">
+                  {displayPromoters.map((p, i) => (
+                    <tr key={p.code} className="hover:bg-surface-hover/50 transition-colors">
+                      <td className="py-3 flex items-center gap-2.5 font-medium text-text-primary">
+                        <div className="w-7 h-7 rounded-full bg-[#00B686]/15 text-[#00B686] flex items-center justify-center font-bold text-xs">
+                          {p.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span>{p.name}</span>
+                        {i === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold">Top 1</span>}
+                      </td>
+                      <td className="py-3 font-mono font-bold text-[#00B686]">{p.code}</td>
+                      <td className="py-3 text-right font-semibold text-text-primary">{p.conversions}</td>
+                      <td className="py-3 text-right font-bold text-[#00B686]">{p.conversions * campaign.reward} USDC</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
       </div>

@@ -130,14 +130,21 @@ export function validateCampaignStep1(values: {
 
   if (!values.name || values.name.trim().length < 4) {
     errors.name = 'El nombre de la campaña debe tener al menos 4 caracteres.'
+  } else if (values.name.length > 80) {
+    errors.name = 'El nombre no puede superar los 80 caracteres.'
   }
 
   if (!values.description || values.description.trim().length < 15) {
-    errors.description = 'Ingresa una descripción clara de la campaña (mínimo 15 caracteres).'
+    const currentLen = values.description ? values.description.trim().length : 0
+    errors.description = `La descripción requiere al menos 15 caracteres (actualmente llevas ${currentLen}).`
+  } else if (values.description.length > 500) {
+    errors.description = 'La descripción no puede superar los 500 caracteres.'
   }
 
   if (!values.product || values.product.trim().length < 3) {
-    errors.product = 'Especifica el producto, servicio o evento a promocionar.'
+    errors.product = 'Especifica el producto o servicio a promocionar (mínimo 3 caracteres).'
+  } else if (values.product.length > 80) {
+    errors.product = 'El producto no puede superar los 80 caracteres.'
   }
 
   if (!values.category || values.category.trim() === '') {
