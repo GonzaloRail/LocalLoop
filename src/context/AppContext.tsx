@@ -356,7 +356,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (campaign.conversions >= campaign.maxConversions)
       return { success: false, message: 'La campaña alcanzó el límite máximo de conversiones' }
 
-    // Verificar duplicado en BD
+    // 1. Antifraude: Verificar duplicado en memoria local
+    const localDup = conversions.find(
+      (c) => c.campaignId === campaignId && c.operation.trim().toLowerCase() === operation.trim().toLowerCase()
+    )
+    if (localDup) {
+      return {
+        success: false,
+        message: `La operación "${operation}" ya fue registrada previamente (prevención de doble gasto).`,
+      }
+    }
+
+    // 2. Antifraude: Verificar duplicado en Supabase
     try {
       const { data: dupCheck } = await supabase
         .from('conversions')
@@ -367,16 +378,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (dupCheck && dupCheck.length > 0) {
         return {
           success: false,
-          message: `La operación "${operation}" ya fue registrada previamente para esta campaña.`,
+          message: `La operación "${operation}" ya fue registrada previamente en la base de datos.`,
         }
       }
     } catch {
       // ignore
     }
 
+    // 3. Validar que el código pertenezca a un promotor registrado en la campaña
     const part = participations.find(
       (p) => p.code.toUpperCase() === code.toUpperCase() && p.campaignId === campaignId
     )
+    const isDemoCampaign1Code = campaignId === '1' && ['DIEGO82', 'ANA99', 'CARLOS21', 'ANA45', 'JUAN73'].includes(code.toUpperCase())
+
+    if (!part && !isDemoCampaign1Code) {
+      return {
+        success: false,
+        message: `El código "${code}" no está inscrito como promotor en esta campaña. Únete como promotor primero para obtener un código válido.`,
+      }
+    }
 
     const { data: row, error } = await supabase
       .from('conversions')
