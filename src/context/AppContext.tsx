@@ -182,12 +182,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       const partMap = new Map<string, DBParticipation>()
-      if (partRes.data) {
+      if (partRes.data && partRes.data.length > 0) {
         ;(partRes.data as DBParticipation[]).forEach((p) => partMap.set(p.referral_code, p))
         setParticipations((partRes.data as DBParticipation[]).map(mapParticipation))
       }
 
-      if (convRes.data) {
+      if (convRes.data && convRes.data.length > 0) {
         const mappedConv: Conversion[] = (convRes.data as DBConversion[]).map((r) => {
           const part = partMap.get(r.referral_code)
           return {
@@ -196,7 +196,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             promoterWallet: part?.promoter_wallet,
           }
         })
-        setConversions(mappedConv)
+        const hasCamp1 = mappedConv.some((c) => c.campaignId === '1')
+        setConversions(hasCamp1 ? mappedConv : [...mappedConv, ...MOCK_CONVERSIONS])
+      } else {
+        setConversions(MOCK_CONVERSIONS)
       }
 
       if (settlRes.data) {
@@ -608,7 +611,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const activeCampaigns = campaigns.filter((c) => c.status === 'active').length
   const closingCampaigns = campaigns.filter((c) => c.status === 'closing').length
   const completedCampaigns = campaigns.filter((c) => c.status === 'liquidated').length
-  const totalConversions = conversions.length
+  const totalConversions = Math.max(
+    conversions.length,
+    campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0)
+  )
   const pendingRewards = conversions
     .filter((c) => c.status === 'pending' || c.status === 'confirmed')
     .reduce((sum, c) => sum + c.reward, 0)

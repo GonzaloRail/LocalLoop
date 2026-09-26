@@ -59,11 +59,36 @@ export const MOCK_CAMPAIGNS = [
 ]
 
 export const MOCK_CONVERSIONS = [
-  { id: '1', campaignId: '1', code: 'DIEGO82', promoter: 'Diego Huamani', operation: 'Entrada #58321', date: '12/10/2026', reward: 2, status: 'pending' as const },
-  { id: '2', campaignId: '1', code: 'DIEGO82', promoter: 'Diego Huamani', operation: 'Entrada #58322', date: '13/10/2026', reward: 2, status: 'confirmed' as const },
-  { id: '3', campaignId: '1', code: 'ANA45', promoter: 'Ana López', operation: 'Entrada #58323', date: '13/10/2026', reward: 2, status: 'confirmed' as const },
-  { id: '4', campaignId: '1', code: 'JUAN73', promoter: 'Juan Pérez', operation: 'Entrada #58324', date: '14/10/2026', reward: 2, status: 'pending' as const },
-  { id: '5', campaignId: '1', code: 'DIEGO82', promoter: 'Diego Huamani', operation: 'Entrada #58325', date: '14/10/2026', reward: 2, status: 'confirmed' as const },
+  ...Array.from({ length: 35 }, (_, i) => ({
+    id: `conv-diego-${i + 1}`,
+    campaignId: '1',
+    code: 'DIEGO82',
+    promoter: 'Diego Huamani',
+    operation: `Entrada #${58301 + i}`,
+    date: `${10 + (i % 10)}/10/2026`,
+    reward: 2,
+    status: (i < 30 ? 'confirmed' : 'pending') as 'confirmed' | 'pending',
+  })),
+  ...Array.from({ length: 22 }, (_, i) => ({
+    id: `conv-ana-${i + 1}`,
+    campaignId: '1',
+    code: 'ANA99',
+    promoter: 'Ana Morales',
+    operation: `Entrada #${58336 + i}`,
+    date: `${11 + (i % 9)}/10/2026`,
+    reward: 2,
+    status: (i < 18 ? 'confirmed' : 'pending') as 'confirmed' | 'pending',
+  })),
+  ...Array.from({ length: 13 }, (_, i) => ({
+    id: `conv-carlos-${i + 1}`,
+    campaignId: '1',
+    code: 'CARLOS21',
+    promoter: 'Carlos Vega',
+    operation: `Entrada #${58358 + i}`,
+    date: `${12 + (i % 8)}/10/2026`,
+    reward: 2,
+    status: (i < 10 ? 'confirmed' : 'pending') as 'confirmed' | 'pending',
+  })),
 ]
 
 export const MOCK_PROMOTER_CAMPAIGNS = [
@@ -102,6 +127,7 @@ export const BUSINESS_SUMMARY = {
 
 export const LIQUIDATION_PROMOTERS = [
   { name: 'Diego Huamani', conversions: 35, reward: 70 },
-  { name: 'Ana López', conversions: 20, reward: 40 },
-  { name: 'Juan Pérez', conversions: 15, reward: 30 },
+  { name: 'Ana Morales', conversions: 22, reward: 44 },
+  { name: 'Carlos Vega', conversions: 13, reward: 26 },
 ]
+

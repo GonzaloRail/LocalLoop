@@ -1780,22 +1780,39 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
   const campConversions = conversions.filter(c => c.campaignId === campaign.id)
   const campParts = participations.filter(p => p.campaignId === campaign.id)
 
-  const promoters = campParts.map(p => {
-    const pConvs = campConversions.filter(c => c.code === p.code).length
-    return { name: p.promoterName, code: p.code, conversions: pConvs }
-  })
-
-  // Solo mostrar datos de demostración si es la campaña demo inicial '1' y no hay promotores
-  const displayPromoters = promoters.length > 0
-    ? promoters
-    : campaign.id === '1'
+  // Promotores base para la campaña insignia '1' (Concierto Universitario)
+  // 35 + 22 + 13 = 70 conversiones verificadas (140 USDC)
+  const basePromotersForDemo = campaign.id === '1'
     ? [
-        { name: 'Diego Huamani', code: 'DIEGO82', conversions: campConversions.length || 18 },
-        { name: 'Ana Morales', code: 'ANA99', conversions: 12 },
-        { name: 'Carlos Vega', code: 'CARLOS21', conversions: 8 },
+        { name: 'Diego Huamani', code: 'DIEGO82', baseConversions: 35 },
+        { name: 'Ana Morales', code: 'ANA99', baseConversions: 22 },
+        { name: 'Carlos Vega', code: 'CARLOS21', baseConversions: 13 },
       ]
     : []
 
+  const dynamicPromoters = campParts.map(p => {
+    const pConvs = campConversions.filter(c => c.code.toUpperCase() === p.code.toUpperCase()).length
+    return { name: p.promoterName, code: p.code, conversions: pConvs }
+  })
+
+  let displayPromoters: { name: string; code: string; conversions: number }[] = []
+  if (campaign.id === '1') {
+    const baseMerged = basePromotersForDemo.map(bp => {
+      const dynMatch = dynamicPromoters.find(dp => dp.code.toUpperCase() === bp.code.toUpperCase())
+      const dynCount = campConversions.filter(c => c.code.toUpperCase() === bp.code.toUpperCase()).length
+      return {
+        name: dynMatch?.name ?? bp.name,
+        code: bp.code,
+        conversions: Math.max(bp.baseConversions, dynCount),
+      }
+    })
+    const extraDyn = dynamicPromoters.filter(dp => !baseMerged.some(bm => bm.code.toUpperCase() === dp.code.toUpperCase()))
+    displayPromoters = [...baseMerged, ...extraDyn]
+  } else {
+    displayPromoters = dynamicPromoters
+  }
+
+  const totalCampaignConversions = Math.max(campConversions.length, campaign.conversions)
   const pct = Math.min(Math.round((campaign.conversions / campaign.maxConversions) * 100), 100)
 
   return (
@@ -1819,7 +1836,7 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
             </div>
             <div className="flex items-center gap-2">
               <Button variant="neutral" size="small" onClick={() => navigate('campaign-conversions', { campaignId: campaign.id })}>
-                Ver conversiones ({campConversions.length})
+                Ver conversiones ({totalCampaignConversions})
               </Button>
               {campaign.status === 'active' && (
                 <Button variant="primary" size="small" onClick={() => navigate('close-campaign', { campaignId: campaign.id })}>
@@ -1844,7 +1861,7 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
             <div>
               <p className="text-xs font-bold text-text-primary">Contrato de Custodia Soroban Activo</p>
               <p className="text-[11px] text-text-secondary">
-                {campaign.budget} USDC garantizados en la red Stellar Testnet para pagos a promotores
+                {campaign.budget} USDC garantizados en Stellar · {campaign.usedBudget} USDC devengados por promotores
               </p>
             </div>
           </div>
@@ -1858,14 +1875,14 @@ export function CampaignDetail({ navigate, params, userType, setUserType }: NavP
           <StatTile
             label="Conversiones"
             value={`${campaign.conversions} / ${campaign.maxConversions}`}
-            sub={`${campaign.maxConversions - campaign.conversions} cupos libres (${pct}%)`}
+            sub={`${pct}% alcanzado · ${campaign.maxConversions - campaign.conversions} cupos libres`}
             icon={CheckCircle}
             accent
           />
           <StatTile
-            label="Presupuesto en Escrow"
-            value={`${campaign.usedBudget} USDC`}
-            sub={`${campaign.budget - campaign.usedBudget} USDC disponibles`}
+            label="Presupuesto Comprometido"
+            value={`${campaign.usedBudget} / ${campaign.budget} USDC`}
+            sub={`${campaign.budget - campaign.usedBudget} USDC disponibles en custodia`}
             icon={Coins}
           />
           <StatTile
@@ -2216,9 +2233,9 @@ export function LiquidationSummary({ navigate, params, userType, setUserType }: 
   const promotersList = promoterMap.size > 0
     ? Array.from(promoterMap.values())
     : [
-        { name: 'Ana Morales', conversions: 35, reward: 70, wallet: 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX' },
-        { name: 'Carlos Vega', conversions: 22, reward: 44, wallet: 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y' },
-        { name: 'Lucía Torres', conversions: 13, reward: 26, wallet: 'GB6WNDOXJLWK7F4534T2P72F33X76JSDN5FXY34S2HXYGZNDW7X6BCKB' },
+        { name: 'Diego Huamani', conversions: 35, reward: 70, wallet: 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC' },
+        { name: 'Ana Morales', conversions: 22, reward: 44, wallet: 'GA7HPIC5QEG7GD42Q4XNXJ72FDPYKFRMMXY4IBWA3R5ZNTD5QKKSUSPX' },
+        { name: 'Carlos Vega', conversions: 13, reward: 26, wallet: 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y' },
       ]
 
   const totalConversions = promotersList.reduce((acc, p) => acc + p.conversions, 0)

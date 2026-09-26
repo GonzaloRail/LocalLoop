@@ -1247,7 +1247,7 @@ export function PromoterEarnings({ navigate, userType, setUserType }: NavProps) 
         }
       })
     : [
-        { id: '1', campaignName: 'Lanzamiento App Móvil', status: 'active', earnings: 36, conversions: 18, code: 'DIEGO82' },
+        { id: '1', campaignName: 'Concierto Universitario', status: 'active', earnings: 70, conversions: 35, code: 'DIEGO82' },
         { id: '2', campaignName: 'Feria Gastronómica', status: 'closing', earnings: 27, conversions: 9, code: 'DIEGO44' },
       ]
 
@@ -1374,7 +1374,7 @@ export function AccountStatement({ navigate, userType, setUserType }: NavProps) 
         amount: t.amount,
       }))
     : [
-        { id: '1', date: '20/10/2026', campaign: 'Concierto Universitario', code: 'DIEGO82', status: 'paid', amount: 36 },
+        { id: '1', date: '20/10/2026', campaign: 'Concierto Universitario', code: 'DIEGO82', status: 'paid', amount: 70 },
         { id: '2', date: '28/10/2026', campaign: 'Feria Gastronómica', code: 'DIEGO44', status: 'pending', amount: 27 },
       ]
 
