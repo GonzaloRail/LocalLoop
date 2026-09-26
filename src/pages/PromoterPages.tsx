@@ -180,6 +180,8 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
     setTimeout(() => setCopiedWallet(false), 2000)
   }
 
+  const promoterName = currentUser.promoterName || (currentUser.type === 'promoter' ? currentUser.name : '') || 'Diego Huamani'
+
   return (
     <AppShell currentPage="promoter-dashboard" navigate={navigate} userType={userType} setUserType={setUserType}>
       <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
@@ -188,12 +190,12 @@ export function PromoterDashboard({ navigate, userType, setUserType }: NavProps)
         <div className="bg-surface-bg border border-border-primary rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xl border border-purple-500/20 shrink-0">
-              {currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : 'DH'}
+              {promoterName ? promoterName.slice(0, 2).toUpperCase() : 'DH'}
             </div>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
-                  {currentUser.name || 'Diego Huamani'}
+                  {promoterName}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#00B686]/10 text-[#00B686] border border-[#00B686]/20">
                   <ShieldCheck size={13} />
@@ -1564,7 +1566,8 @@ export function TransactionHistory({ navigate, userType, setUserType }: NavProps
 export function PromoterProfile({ navigate, userType, setUserType }: NavProps) {
   const { currentUser, promoterStats, participations } = useApp()
   const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(currentUser.name || 'Diego Huamani')
+  const promoterName = currentUser.promoterName || (currentUser.type === 'promoter' ? currentUser.name : '') || 'Diego Huamani'
+  const [name, setName] = useState(promoterName)
   const [phone, setPhone] = useState('+51 999 888 777')
   const [funding, setFunding] = useState(false)
   const [faucetMsg, setFaucetMsg] = useState<string | null>(null)

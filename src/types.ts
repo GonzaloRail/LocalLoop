@@ -106,4 +106,8 @@ export interface CurrentUser {
   phone?: string
   category?: string
   description?: string
+  businessName?: string
+  promoterName?: string
+  businessWallet?: string | null
+  promoterWallet?: string | null
 }

@@ -162,6 +162,8 @@ export function BusinessDashboard({ navigate, userType, setUserType }: NavProps)
     setTimeout(() => setCopiedWallet(false), 2000)
   }
 
+  const businessName = currentUser.businessName || (currentUser.type === 'business' ? currentUser.name : '') || 'Eventos XYZ'
+
   return (
     <AppShell currentPage="business-dashboard" navigate={navigate} userType={userType} setUserType={setUserType}>
       <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
@@ -170,12 +172,12 @@ export function BusinessDashboard({ navigate, userType, setUserType }: NavProps)
         <div className="bg-surface-bg border border-border-primary rounded-2xl p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#0B2545]/10 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xl border border-blue-500/20 shrink-0">
-              {currentUser.name ? currentUser.name.slice(0, 2).toUpperCase() : 'EX'}
+              {businessName ? businessName.slice(0, 2).toUpperCase() : 'EX'}
             </div>
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
-                  {currentUser.name || 'Eventos XYZ'}
+                  {businessName}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <ShieldCheck size={13} />
@@ -431,8 +433,8 @@ export function BusinessDashboard({ navigate, userType, setUserType }: NavProps)
 
 export function BusinessProfile({ navigate, userType, setUserType }: NavProps) {
   const { currentUser, businessStats, campaigns } = useApp()
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(currentUser.name || 'Eventos XYZ')
+  const businessName = currentUser.businessName || (currentUser.type === 'business' ? currentUser.name : '') || 'Eventos XYZ'
+  const [name, setName] = useState(businessName)
   const [desc, setDesc] = useState('Empresa de organización de eventos culturales, festivales y activaciones universitarias.')
   const [phone, setPhone] = useState('+51 999 888 777')
   const [category, setCategory] = useState('Entretenimiento')

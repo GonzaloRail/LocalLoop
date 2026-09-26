@@ -119,13 +119,38 @@ const AppContext = createContext<AppContextValue | null>(null)
 const USER_KEY = 'localloop_user'
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  // Usuario (sesión local)
   const [currentUser, setCurrentUserState] = useState<CurrentUser>(() => {
     const saved = localStorage.getItem(USER_KEY)
     if (saved) {
-      try { return JSON.parse(saved) } catch { /* ignore */ }
+      try {
+        const parsed = JSON.parse(saved)
+        // Sanitizar si el nombre cruzó de rol por herencia de sesiones anteriores
+        if (parsed.type === 'business') {
+          if (!parsed.businessName || parsed.name === 'Diego Huamani') {
+            parsed.businessName = parsed.name === 'Diego Huamani' ? 'Eventos XYZ' : (parsed.name || 'Eventos XYZ')
+            parsed.name = parsed.businessName
+          }
+          if (!parsed.promoterName) parsed.promoterName = 'Diego Huamani'
+        } else if (parsed.type === 'promoter') {
+          if (!parsed.promoterName || parsed.name === 'Eventos XYZ' || parsed.name?.toLowerCase().includes('eventos')) {
+            parsed.promoterName = 'Diego Huamani'
+            parsed.name = parsed.promoterName
+          }
+          if (!parsed.businessName) parsed.businessName = 'Eventos XYZ'
+        }
+        return parsed
+      } catch { /* ignore */ }
     }
-    return { type: null, name: '', email: '', wallet: null }
+    return {
+      type: null,
+      name: '',
+      email: '',
+      wallet: null,
+      businessName: 'Eventos XYZ',
+      promoterName: 'Diego Huamani',
+      businessWallet: 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y',
+      promoterWallet: 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC',
+    }
   })
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -200,11 +225,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [refreshData])
 
   function setCurrentUser(u: Partial<CurrentUser>) {
-    setCurrentUserState((prev) => ({ ...prev, ...u }))
+    setCurrentUserState((prev) => {
+      const next = { ...prev, ...u }
+      const effectiveType = u.type ?? prev.type
+      if (effectiveType === 'business') {
+        if (u.name) next.businessName = u.name
+        if (u.wallet) next.businessWallet = u.wallet
+      } else if (effectiveType === 'promoter') {
+        if (u.name) next.promoterName = u.name
+        if (u.wallet) next.promoterWallet = u.wallet
+      }
+      return next
+    })
   }
 
   function setUserType(t: UserType) {
-    setCurrentUserState((prev) => ({ ...prev, type: t }))
+    setCurrentUserState((prev) => {
+      if (!t) return { ...prev, type: null }
+      const newName = t === 'business'
+        ? (prev.businessName || 'Eventos XYZ')
+        : (prev.promoterName || 'Diego Huamani')
+
+      const newWallet = t === 'business'
+        ? (prev.businessWallet || 'GC6AXP53B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3Y')
+        : (prev.promoterWallet || 'GB7B236R7X6NDJ3K6X5Y34S2HXYGZNDW7X6BCKB3YGA7HPIC')
+
+      return {
+        ...prev,
+        type: t,
+        name: newName,
+        wallet: newWallet,
+      }
+    })
   }
 
   // ── Crear campaña ──────────────────────────────────────────────────────────
