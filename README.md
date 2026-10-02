@@ -162,7 +162,9 @@ Para verificar el ciclo de vida completo de la solución:
 ---
 
 ## 👥 Equipo
+Equipo LocalLoop
 Proyecto desarrollado para el Hackathon **Stellar Open Build Peru 2026**.
+
 
 ## 📄 Licencia
 Este proyecto está bajo la Licencia MIT con archivo visible en la raíz del repositorio. Consulta [LICENSE](LICENSE) para más detalles.
